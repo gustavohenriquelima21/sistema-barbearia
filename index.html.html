@@ -1,0 +1,1751 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Barbearia — Painel de Controle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Archivo:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #1c1816;
+    --bg-elev: #262120;
+    --bg-elev-2: #302a28;
+    --line: #433b37;
+    --gold: #c9a35a;
+    --gold-bright: #e6c178;
+    --cream: #f4ecdf;
+    --muted: #a8998c;
+    --green: #7fa86f;
+    --red: #c9665a;
+    --radius: 4px;
+    --display: 'Bebas Neue', sans-serif;
+    --body: 'Archivo', sans-serif;
+    --mono: 'Space Mono', monospace;
+  }
+
+  *{ box-sizing: border-box; margin:0; padding:0; }
+
+  body{
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 20% 0%, rgba(201,163,90,0.06), transparent 45%),
+      radial-gradient(circle at 100% 100%, rgba(201,163,90,0.04), transparent 40%);
+    color: var(--cream);
+    font-family: var(--body);
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+
+  a{ color: var(--gold-bright); }
+
+  /* ---------- Layout ---------- */
+  .app{
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 28px 20px 80px;
+  }
+
+  header.top{
+    display:flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 22px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+
+  .brand{
+    display:flex;
+    align-items:baseline;
+    gap: 12px;
+  }
+  .brand .mark{
+    font-family: var(--display);
+    font-size: 38px;
+    letter-spacing: 3px;
+    color: var(--gold-bright);
+    line-height: 1;
+  }
+  .brand .sub{
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .clock{
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--muted);
+    text-align:right;
+  }
+  .clock .day{ color: var(--gold-bright); font-weight:700; }
+
+  /* ---------- Tabs ---------- */
+  nav.tabs{
+    display:flex;
+    gap: 4px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--line);
+    overflow-x: auto;
+  }
+  nav.tabs button{
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: var(--display);
+    font-size: 18px;
+    letter-spacing: 2px;
+    padding: 10px 18px;
+    cursor: pointer;
+    position: relative;
+    white-space: nowrap;
+    transition: color .15s;
+  }
+  nav.tabs button:hover{ color: var(--cream); }
+  nav.tabs button.active{ color: var(--gold-bright); }
+  nav.tabs button.active::after{
+    content:"";
+    position:absolute;
+    left: 10px; right: 10px; bottom: -1px;
+    height: 2px;
+    background: var(--gold);
+  }
+
+  .view{ display:none; animation: fade .25s ease; }
+  .view.active{ display:block; }
+  @keyframes fade{ from{ opacity:0; transform: translateY(4px);} to{opacity:1; transform:none;} }
+
+  /* ---------- Cards / panels ---------- */
+  .panel{
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .panel h2{
+    font-family: var(--display);
+    font-size: 20px;
+    letter-spacing: 2px;
+    color: var(--gold-bright);
+    margin-bottom: 16px;
+    text-transform: uppercase;
+  }
+  .grid-2{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .grid-3{
+    display:grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 680px){
+    .grid-2, .grid-3{ grid-template-columns: 1fr; }
+  }
+
+  label{
+    display:block;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  input, select, textarea{
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    color: var(--cream);
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    font-family: var(--body);
+    font-size: 14px;
+    margin-bottom: 14px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  input:focus, select:focus, textarea:focus{
+    border-color: var(--gold);
+  }
+  input::placeholder{ color: #6e6259; }
+
+  button.primary{
+    background: var(--gold);
+    color: #2a221b;
+    border: none;
+    font-family: var(--display);
+    letter-spacing: 2px;
+    font-size: 15px;
+    padding: 11px 24px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: background .15s, transform .1s;
+  }
+  button.primary:hover{ background: var(--gold-bright); }
+  button.primary:active{ transform: scale(.98); }
+
+  button.ghost{
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 8px 14px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  button.ghost:hover{ color: var(--cream); border-color: var(--gold); }
+  button.danger:hover{ color: var(--red); border-color: var(--red); }
+
+  /* ---------- Tables / lists ---------- */
+  table{ width:100%; border-collapse: collapse; font-size: 14px; }
+  th{
+    text-align:left;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  td{
+    padding: 10px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: middle;
+  }
+  tr:last-child td{ border-bottom: none; }
+  tr:hover td{ background: rgba(201,163,90,0.04); }
+  .empty{
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 30px 10px;
+    text-align: center;
+    border: 1px dashed var(--line);
+    border-radius: var(--radius);
+  }
+
+  /* ---------- Status badges ---------- */
+  .badge{
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    border-radius: 3px;
+    display:inline-block;
+    border: 1px solid currentColor;
+  }
+  .badge.pendente{ color: var(--gold-bright); }
+  .badge.concluido{ color: var(--green); }
+  .badge.cancelado{ color: var(--red); }
+
+  /* ---------- Ticket (signature element) ---------- */
+  .tickets{
+    display:flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .ticket{
+    display:grid;
+    grid-template-columns: 90px 1fr auto;
+    align-items:center;
+    gap: 18px;
+    background: var(--bg-elev-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .ticket::before, .ticket::after{
+    content:"";
+    position:absolute;
+    width: 16px; height: 16px;
+    background: var(--bg);
+    border-radius: 50%;
+    top: 50%; transform: translateY(-50%);
+  }
+  .ticket::before{ left: -8px; }
+  .ticket::after{ right: -8px; }
+  .ticket .time{
+    font-family: var(--mono);
+    font-size: 22px;
+    color: var(--gold-bright);
+    border-right: 1px dashed var(--line);
+    text-align:center;
+    line-height:1.1;
+  }
+  .ticket .time small{
+    display:block;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-top:4px;
+  }
+  .ticket .info .name{
+    font-weight: 600;
+    font-size: 16px;
+    margin-bottom: 2px;
+  }
+  .ticket .info .meta{
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .ticket .actions{
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+  @media (max-width: 680px){
+    .ticket{ grid-template-columns: 70px 1fr; }
+    .ticket .actions{ grid-column: 1 / -1; justify-content:flex-end; padding-top:8px; border-top: 1px solid var(--line); }
+  }
+
+  /* ---------- Stats ---------- */
+  .stats{
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  @media (max-width: 680px){ .stats{ grid-template-columns: repeat(2,1fr); } }
+  .stat{
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 16px;
+    text-align:center;
+  }
+  .stat .num{
+    font-family: var(--display);
+    font-size: 32px;
+    color: var(--gold-bright);
+    line-height: 1;
+  }
+  .stat .lbl{
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  /* ---------- Modal (pagamento) ---------- */
+  .modal-overlay{
+    display:none;
+    position: fixed;
+    inset: 0;
+    background: rgba(20,16,14,0.7);
+    z-index: 200;
+    align-items:center;
+    justify-content:center;
+    padding: 20px;
+  }
+  .modal-overlay.show{ display:flex; }
+  .modal{
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 24px;
+    max-width: 380px;
+    width: 100%;
+  }
+  .modal h2{
+    font-family: var(--display);
+    font-size: 20px;
+    letter-spacing: 2px;
+    color: var(--gold-bright);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .modal-sub{
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+  .pay-options{
+    display:grid;
+    grid-template-columns: repeat(3,1fr);
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .pay-opt{
+    background: var(--bg);
+    border: 1px solid var(--line);
+    color: var(--cream);
+    font-family: var(--body);
+    font-size: 13px;
+    padding: 14px 6px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    text-align:center;
+    transition: all .15s;
+  }
+  .pay-opt:hover{ border-color: var(--gold); background: var(--bg-elev-2); }
+  .modal-actions{
+    display:flex;
+    justify-content:flex-end;
+  }
+
+  /* ---------- Toast ---------- */
+  .toast{
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--gold);
+    color: #2a221b;
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 10px 20px;
+    border-radius: var(--radius);
+    opacity: 0;
+    transition: all .25s ease;
+    pointer-events:none;
+    z-index: 100;
+  }
+  .toast.show{ opacity:1; transform: translateX(-50%) translateY(0); }
+
+  .row-actions{ display:flex; gap:6px; }
+
+  .filter-bar{
+    display:flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    align-items:center;
+  }
+  .filter-bar input, .filter-bar select{ margin-bottom:0; width:auto; min-width:160px; }
+  .filter-bar .spacer{ flex:1; }
+
+  footer.note{
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    text-align:center;
+    margin-top: 30px;
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <span class="mark">Barbearia ✂</span>
+      <span class="sub">Painel&nbsp;de&nbsp;Controle</span>
+    </div>
+    <div class="clock">
+      <div class="day" id="clockDate">—</div>
+      <div id="clockTime">—</div>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-view="agenda">Agenda</button>
+    <button class="tab-btn" data-view="clientes">Clientes</button>
+    <button class="tab-btn" data-view="profissionais">Profissionais</button>
+    <button class="tab-btn" data-view="servicos">Serviços</button>
+    <button class="tab-btn" data-view="financeiro">Financeiro</button>
+    <button class="tab-btn" data-view="relatorios">Relatórios</button>
+  </nav>
+
+  <!-- ===================== AGENDA ===================== -->
+  <section class="view active" id="view-agenda">
+    <div class="panel">
+      <h2>Novo Agendamento</h2>
+      <div class="grid-3">
+        <div>
+          <label>Cliente</label>
+          <select id="agCliente"></select>
+        </div>
+        <div>
+          <label>Serviço</label>
+          <select id="agServico"></select>
+        </div>
+        <div>
+          <label>Profissional</label>
+          <select id="agBarbeiro"></select>
+        </div>
+        <div>
+          <label>Data</label>
+          <input type="date" id="agData">
+        </div>
+        <div>
+          <label>Hora</label>
+          <select id="agHora"></select>
+        </div>
+        <div>
+          <label>Observações</label>
+          <input type="text" id="agObs" placeholder="Ex: prefere máquina 2">
+        </div>
+        <div style="display:flex; align-items:flex-end;">
+          <button class="primary" id="btnAddAgendamento" style="width:100%">Agendar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Agenda</h2>
+      <div class="filter-bar">
+        <input type="date" id="filtroData">
+        <select id="filtroStatus">
+          <option value="">Todos os status</option>
+          <option value="pendente">Pendente</option>
+          <option value="concluido">Concluído</option>
+          <option value="cancelado">Cancelado</option>
+        </select>
+        <select id="filtroBarbeiro">
+          <option value="">Todos os profissionais</option>
+        </select>
+        <div class="spacer"></div>
+        <button class="ghost" id="btnHoje">Hoje</button>
+        <button class="ghost" id="btnLimparFiltro">Limpar filtro</button>
+      </div>
+      <div class="tickets" id="listaAgendamentos"></div>
+    </div>
+  </section>
+
+  <!-- ===================== CLIENTES ===================== -->
+  <section class="view" id="view-clientes">
+    <div class="panel">
+      <h2>Cadastrar Cliente</h2>
+      <div class="grid-3">
+        <div>
+          <label>Nome</label>
+          <input type="text" id="clNome" placeholder="Nome completo">
+        </div>
+        <div>
+          <label>Telefone</label>
+          <input type="tel" id="clTelefone" placeholder="(99) 99999-9999">
+        </div>
+        <div>
+          <label>E-mail</label>
+          <input type="email" id="clEmail" placeholder="cliente@email.com">
+        </div>
+      </div>
+      <button class="primary" id="btnAddCliente">Salvar Cliente</button>
+    </div>
+
+    <div class="panel">
+      <h2>Clientes Cadastrados</h2>
+      <div class="filter-bar">
+        <input type="text" id="buscaCliente" placeholder="Buscar por nome ou telefone...">
+      </div>
+      <div id="tabelaClientes"></div>
+    </div>
+  </section>
+
+  <!-- ===================== PROFISSIONAIS ===================== -->
+  <section class="view" id="view-profissionais">
+    <div class="panel">
+      <h2>Cadastrar Profissional</h2>
+      <div class="grid-3">
+        <div>
+          <label>Nome</label>
+          <input type="text" id="prNome" placeholder="Nome do barbeiro">
+        </div>
+        <div>
+          <label>Telefone (opcional)</label>
+          <input type="tel" id="prTelefone" placeholder="(99) 99999-9999">
+        </div>
+        <div>
+          <label>Especialidade (opcional)</label>
+          <input type="text" id="prEspecialidade" placeholder="Ex: Degradê, navalhado...">
+        </div>
+      </div>
+      <button class="primary" id="btnAddProfissional">Salvar Profissional</button>
+    </div>
+
+    <div class="panel">
+      <h2>Profissionais Cadastrados</h2>
+      <div id="tabelaProfissionais"></div>
+    </div>
+  </section>
+
+  <!-- ===================== SERVIÇOS ===================== -->
+  <section class="view" id="view-servicos">
+    <div class="panel">
+      <h2>Cadastrar Serviço</h2>
+      <div class="grid-3">
+        <div>
+          <label>Nome do serviço</label>
+          <input type="text" id="svNome" placeholder="Ex: Corte masculino">
+        </div>
+        <div>
+          <label>Preço (R$)</label>
+          <input type="number" id="svPreco" placeholder="35.00" step="0.01" min="0">
+        </div>
+        <div>
+          <label>Duração (min)</label>
+          <input type="number" id="svDuracao" placeholder="30" step="5" min="5">
+        </div>
+      </div>
+      <button class="primary" id="btnAddServico">Salvar Serviço</button>
+    </div>
+
+    <div class="panel">
+      <h2>Serviços Cadastrados</h2>
+      <div id="tabelaServicos"></div>
+    </div>
+  </section>
+
+  <!-- ===================== FINANCEIRO ===================== -->
+  <section class="view" id="view-financeiro">
+    <div class="stats" id="finStatsBox"></div>
+
+    <div class="panel">
+      <h2>Filtrar por Período</h2>
+      <div class="filter-bar">
+        <div>
+          <label>De</label>
+          <input type="date" id="finDe">
+        </div>
+        <div>
+          <label>Até</label>
+          <input type="date" id="finAte">
+        </div>
+        <div>
+          <label>Profissional</label>
+          <select id="finBarbeiro">
+            <option value="">Todos</option>
+          </select>
+        </div>
+        <div style="display:flex; align-items:flex-end;">
+          <button class="ghost" id="btnFinCalc">Filtrar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Recebimentos por Forma de Pagamento</h2>
+      <div id="finFormaPagamento"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Faturamento por Profissional</h2>
+      <div id="finPorProfissional"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Lançamentos</h2>
+      <div id="finLancamentos"></div>
+    </div>
+  </section>
+
+  <!-- ===================== RELATÓRIOS ===================== -->
+  <section class="view" id="view-relatorios">
+    <div class="stats" id="statsBox"></div>
+
+    <div class="panel">
+      <h2>Faturamento por Período</h2>
+      <div class="filter-bar">
+        <div>
+          <label>De</label>
+          <input type="date" id="relDe">
+        </div>
+        <div>
+          <label>Até</label>
+          <input type="date" id="relAte">
+        </div>
+        <div style="display:flex; align-items:flex-end;">
+          <button class="ghost" id="btnRelCalc">Calcular</button>
+        </div>
+      </div>
+      <div id="relResultado" class="empty">Selecione um período e clique em calcular.</div>
+    </div>
+
+    <div class="panel">
+      <h2>Clientes Mais Frequentes</h2>
+      <div id="tabelaFrequentes"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Backup dos Dados</h2>
+      <p style="color:var(--muted); font-size:13px; margin-bottom:14px;">
+        Exporte um arquivo com todos os dados (clientes, serviços e agendamentos) para guardar como backup ou transferir para outro computador.
+      </p>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="ghost" id="btnExportar">Exportar backup (.json)</button>
+        <button class="ghost" id="btnImportarTrigger">Importar backup (.json)</button>
+        <input type="file" id="inputImportar" accept=".json" style="display:none">
+        <button class="ghost danger" id="btnLimparTudo">Apagar todos os dados</button>
+      </div>
+    </div>
+  </section>
+
+  <footer class="note">Dados salvos localmente no seu navegador — funciona sem internet.</footer>
+</div>
+
+<!-- Modal de pagamento -->
+<div class="modal-overlay" id="modalPagamento">
+  <div class="modal">
+    <h2>Finalizar Atendimento</h2>
+    <p class="modal-sub" id="modalInfo"></p>
+    <label>Forma de pagamento</label>
+    <div class="pay-options">
+      <button class="pay-opt" data-forma="dinheiro">💵 Dinheiro</button>
+      <button class="pay-opt" data-forma="pix">📱 Pix</button>
+      <button class="pay-opt" data-forma="cartao">💳 Cartão</button>
+    </div>
+    <div class="modal-actions">
+      <button class="ghost" id="btnCancelarPagamento">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===========================================================
+   STORAGE
+=========================================================== */
+const STORAGE_KEY = 'barbearia_dados_v1';
+
+function loadData(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const data = JSON.parse(raw);
+      if(!data.profissionais) data.profissionais = [];
+      return data;
+    }
+  }catch(e){ console.error('Erro ao carregar dados', e); }
+  return { clientes: [], servicos: [], agendamentos: [], profissionais: [] };
+}
+
+function saveData(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+}
+
+let db = loadData();
+
+// Seed de serviços e profissional padrão na primeira execução
+if(db.servicos.length === 0 && db.clientes.length === 0 && db.agendamentos.length === 0 && db.profissionais.length === 0){
+  db.servicos = [
+    { id: uid(), nome: 'Corte masculino', preco: 35, duracao: 30 },
+    { id: uid(), nome: 'Barba', preco: 25, duracao: 20 },
+    { id: uid(), nome: 'Corte + Barba', preco: 55, duracao: 50 },
+  ];
+  db.profissionais = [
+    { id: uid(), nome: 'Profissional 1', telefone: '', especialidade: '' },
+  ];
+  saveData();
+}
+
+function uid(){
+  return Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+}
+
+/* ===========================================================
+   TOAST
+=========================================================== */
+let toastTimer;
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> t.classList.remove('show'), 2200);
+}
+
+/* ===========================================================
+   CLOCK
+=========================================================== */
+function tickClock(){
+  const now = new Date();
+  const dateOpts = { weekday:'long', day:'2-digit', month:'long', year:'numeric' };
+  document.getElementById('clockDate').textContent =
+    now.toLocaleDateString('pt-BR', dateOpts);
+  document.getElementById('clockTime').textContent =
+    now.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+}
+tickClock();
+setInterval(tickClock, 1000);
+
+/* ===========================================================
+   TABS
+=========================================================== */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('view-' + btn.dataset.view).classList.add('active');
+    if(btn.dataset.view === 'relatorios') renderRelatorios();
+    if(btn.dataset.view === 'financeiro') renderFinanceiro();
+  });
+});
+
+/* ===========================================================
+   CLIENTES
+=========================================================== */
+function renderClientesSelect(){
+  const sel = document.getElementById('agCliente');
+  sel.innerHTML = '<option value="">Selecione...</option>' +
+    db.clientes
+      .slice()
+      .sort((a,b)=> a.nome.localeCompare(b.nome))
+      .map(c => `<option value="${c.id}">${escapeHtml(c.nome)} — ${escapeHtml(c.telefone||'')}</option>`)
+      .join('');
+}
+
+function renderServicosSelect(){
+  const sel = document.getElementById('agServico');
+  sel.innerHTML = '<option value="">Selecione...</option>' +
+    db.servicos
+      .map(s => `<option value="${s.id}">${escapeHtml(s.nome)} — R$ ${s.preco.toFixed(2)} (${s.duracao}min)</option>`)
+      .join('');
+}
+
+function renderClientesTabela(){
+  const busca = (document.getElementById('buscaCliente').value || '').toLowerCase();
+  const box = document.getElementById('tabelaClientes');
+
+  let lista = db.clientes.slice().sort((a,b)=> a.nome.localeCompare(b.nome));
+  if(busca){
+    lista = lista.filter(c =>
+      c.nome.toLowerCase().includes(busca) ||
+      (c.telefone||'').toLowerCase().includes(busca)
+    );
+  }
+
+  if(lista.length === 0){
+    box.innerHTML = '<div class="empty">Nenhum cliente cadastrado ainda.</div>';
+    return;
+  }
+
+  box.innerHTML = `
+    <table>
+      <thead>
+        <tr><th>Nome</th><th>Telefone</th><th>E-mail</th><th>Visitas</th><th></th></tr>
+      </thead>
+      <tbody>
+        ${lista.map(c=>{
+          const visitas = db.agendamentos.filter(a=> a.clienteId === c.id && a.status === 'concluido').length;
+          return `
+          <tr>
+            <td>${escapeHtml(c.nome)}</td>
+            <td>${escapeHtml(c.telefone||'—')}</td>
+            <td>${escapeHtml(c.email||'—')}</td>
+            <td>${visitas}</td>
+            <td class="row-actions">
+              <button class="ghost" onclick="editarCliente('${c.id}')">Editar</button>
+              <button class="ghost danger" onclick="excluirCliente('${c.id}')">Excluir</button>
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+document.getElementById('btnAddCliente').addEventListener('click', ()=>{
+  const nome = document.getElementById('clNome').value.trim();
+  const telefone = document.getElementById('clTelefone').value.trim();
+  const email = document.getElementById('clEmail').value.trim();
+
+  if(!nome){
+    toast('Informe o nome do cliente.');
+    return;
+  }
+
+  db.clientes.push({ id: uid(), nome, telefone, email, criadoEm: new Date().toISOString() });
+  saveData();
+
+  document.getElementById('clNome').value = '';
+  document.getElementById('clTelefone').value = '';
+  document.getElementById('clEmail').value = '';
+
+  renderClientesTabela();
+  renderClientesSelect();
+  toast('Cliente cadastrado com sucesso!');
+});
+
+document.getElementById('buscaCliente').addEventListener('input', renderClientesTabela);
+
+function editarCliente(id){
+  const c = db.clientes.find(x=>x.id===id);
+  if(!c) return;
+
+  const novoNome = prompt('Nome:', c.nome);
+  if(novoNome === null) return;
+  const novoTel = prompt('Telefone:', c.telefone || '');
+  if(novoTel === null) return;
+  const novoEmail = prompt('E-mail:', c.email || '');
+  if(novoEmail === null) return;
+
+  c.nome = novoNome.trim() || c.nome;
+  c.telefone = novoTel.trim();
+  c.email = novoEmail.trim();
+
+  saveData();
+  renderClientesTabela();
+  renderClientesSelect();
+  renderAgenda();
+  toast('Cliente atualizado.');
+}
+
+function excluirCliente(id){
+  const c = db.clientes.find(x=>x.id===id);
+  if(!c) return;
+  if(!confirm(`Excluir o cliente "${c.nome}"? Os agendamentos dele também serão removidos.`)) return;
+
+  db.clientes = db.clientes.filter(x=>x.id!==id);
+  db.agendamentos = db.agendamentos.filter(a=>a.clienteId!==id);
+  saveData();
+
+  renderClientesTabela();
+  renderClientesSelect();
+  renderAgenda();
+  toast('Cliente excluído.');
+}
+
+/* ===========================================================
+   PROFISSIONAIS
+=========================================================== */
+function renderProfissionaisSelects(){
+  const opcoes = '<option value="">Selecione...</option>' +
+    db.profissionais
+      .slice()
+      .sort((a,b)=> a.nome.localeCompare(b.nome))
+      .map(p => `<option value="${p.id}">${escapeHtml(p.nome)}</option>`)
+      .join('');
+
+  document.getElementById('agBarbeiro').innerHTML = opcoes;
+
+  const opcoesComTodos = '<option value="">Todos</option>' +
+    db.profissionais
+      .slice()
+      .sort((a,b)=> a.nome.localeCompare(b.nome))
+      .map(p => `<option value="${p.id}">${escapeHtml(p.nome)}</option>`)
+      .join('');
+
+  const filtroAgenda = document.getElementById('filtroBarbeiro');
+  const valAgenda = filtroAgenda.value;
+  filtroAgenda.innerHTML = '<option value="">Todos os profissionais</option>' +
+    db.profissionais
+      .slice()
+      .sort((a,b)=> a.nome.localeCompare(b.nome))
+      .map(p => `<option value="${p.id}">${escapeHtml(p.nome)}</option>`)
+      .join('');
+  filtroAgenda.value = valAgenda;
+
+  const filtroFin = document.getElementById('finBarbeiro');
+  const valFin = filtroFin.value;
+  filtroFin.innerHTML = opcoesComTodos;
+  filtroFin.value = valFin;
+}
+
+function renderProfissionaisTabela(){
+  const box = document.getElementById('tabelaProfissionais');
+  if(db.profissionais.length === 0){
+    box.innerHTML = '<div class="empty">Nenhum profissional cadastrado ainda.</div>';
+    return;
+  }
+
+  const lista = db.profissionais.slice().sort((a,b)=> a.nome.localeCompare(b.nome));
+
+  box.innerHTML = `
+    <table>
+      <thead><tr><th>Nome</th><th>Telefone</th><th>Especialidade</th><th></th></tr></thead>
+      <tbody>
+        ${lista.map(p=>`
+          <tr>
+            <td>${escapeHtml(p.nome)}</td>
+            <td>${escapeHtml(p.telefone||'—')}</td>
+            <td>${escapeHtml(p.especialidade||'—')}</td>
+            <td class="row-actions">
+              <button class="ghost" onclick="editarProfissional('${p.id}')">Editar</button>
+              <button class="ghost danger" onclick="excluirProfissional('${p.id}')">Excluir</button>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+document.getElementById('btnAddProfissional').addEventListener('click', ()=>{
+  const nome = document.getElementById('prNome').value.trim();
+  const telefone = document.getElementById('prTelefone').value.trim();
+  const especialidade = document.getElementById('prEspecialidade').value.trim();
+
+  if(!nome){
+    toast('Informe o nome do profissional.');
+    return;
+  }
+
+  db.profissionais.push({ id: uid(), nome, telefone, especialidade });
+  saveData();
+
+  document.getElementById('prNome').value = '';
+  document.getElementById('prTelefone').value = '';
+  document.getElementById('prEspecialidade').value = '';
+
+  renderProfissionaisTabela();
+  renderProfissionaisSelects();
+  toast('Profissional cadastrado!');
+});
+
+function editarProfissional(id){
+  const p = db.profissionais.find(x=>x.id===id);
+  if(!p) return;
+
+  const novoNome = prompt('Nome:', p.nome);
+  if(novoNome === null) return;
+  const novoTel = prompt('Telefone:', p.telefone || '');
+  if(novoTel === null) return;
+  const novaEsp = prompt('Especialidade:', p.especialidade || '');
+  if(novaEsp === null) return;
+
+  p.nome = novoNome.trim() || p.nome;
+  p.telefone = novoTel.trim();
+  p.especialidade = novaEsp.trim();
+
+  saveData();
+  renderProfissionaisTabela();
+  renderProfissionaisSelects();
+  renderAgenda();
+  toast('Profissional atualizado.');
+}
+
+function excluirProfissional(id){
+  const p = db.profissionais.find(x=>x.id===id);
+  if(!p) return;
+  if(!confirm(`Excluir o profissional "${p.nome}"? Os agendamentos dele continuarão existindo, mas sem profissional vinculado.`)) return;
+
+  db.profissionais = db.profissionais.filter(x=>x.id!==id);
+  db.agendamentos.forEach(a=>{ if(a.barbeiroId===id) a.barbeiroId = null; });
+  saveData();
+
+  renderProfissionaisTabela();
+  renderProfissionaisSelects();
+  renderAgenda();
+  toast('Profissional excluído.');
+}
+
+/* ===========================================================
+   SERVIÇOS
+=========================================================== */
+function renderServicosTabela(){
+  const box = document.getElementById('tabelaServicos');
+  if(db.servicos.length === 0){
+    box.innerHTML = '<div class="empty">Nenhum serviço cadastrado ainda.</div>';
+    return;
+  }
+  box.innerHTML = `
+    <table>
+      <thead><tr><th>Serviço</th><th>Preço</th><th>Duração</th><th></th></tr></thead>
+      <tbody>
+        ${db.servicos.map(s=>`
+          <tr>
+            <td>${escapeHtml(s.nome)}</td>
+            <td>R$ ${s.preco.toFixed(2)}</td>
+            <td>${s.duracao} min</td>
+            <td class="row-actions">
+              <button class="ghost" onclick="editarServico('${s.id}')">Editar</button>
+              <button class="ghost danger" onclick="excluirServico('${s.id}')">Excluir</button>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+document.getElementById('btnAddServico').addEventListener('click', ()=>{
+  const nome = document.getElementById('svNome').value.trim();
+  const preco = parseFloat(document.getElementById('svPreco').value);
+  const duracao = parseInt(document.getElementById('svDuracao').value, 10);
+
+  if(!nome || isNaN(preco) || isNaN(duracao)){
+    toast('Preencha nome, preço e duração corretamente.');
+    return;
+  }
+
+  db.servicos.push({ id: uid(), nome, preco, duracao });
+  saveData();
+
+  document.getElementById('svNome').value = '';
+  document.getElementById('svPreco').value = '';
+  document.getElementById('svDuracao').value = '';
+
+  renderServicosTabela();
+  renderServicosSelect();
+  toast('Serviço cadastrado!');
+});
+
+function editarServico(id){
+  const s = db.servicos.find(x=>x.id===id);
+  if(!s) return;
+
+  const novoNome = prompt('Nome do serviço:', s.nome);
+  if(novoNome === null) return;
+  const novoPreco = prompt('Preço (R$):', s.preco);
+  if(novoPreco === null) return;
+  const novaDuracao = prompt('Duração (min):', s.duracao);
+  if(novaDuracao === null) return;
+
+  s.nome = novoNome.trim() || s.nome;
+  const p = parseFloat(novoPreco); if(!isNaN(p)) s.preco = p;
+  const d = parseInt(novaDuracao, 10); if(!isNaN(d)) s.duracao = d;
+
+  saveData();
+  renderServicosTabela();
+  renderServicosSelect();
+  renderAgenda();
+  toast('Serviço atualizado.');
+}
+
+function excluirServico(id){
+  const s = db.servicos.find(x=>x.id===id);
+  if(!s) return;
+  if(!confirm(`Excluir o serviço "${s.nome}"?`)) return;
+
+  db.servicos = db.servicos.filter(x=>x.id!==id);
+  saveData();
+  renderServicosTabela();
+  renderServicosSelect();
+  toast('Serviço excluído.');
+}
+
+/* ===========================================================
+   AGENDAMENTOS
+=========================================================== */
+function todayStr(){
+  const d = new Date();
+  return d.toISOString().slice(0,10);
+}
+
+document.getElementById('agData').value = todayStr();
+
+/* ---- Horários de funcionamento (meia em meia hora) ---- */
+const HORA_INICIO = 8;   // 08:00
+const HORA_FIM = 19;     // até 18:30 (último horário antes das 19:00)
+
+function gerarHorarios(){
+  const horarios = [];
+  for(let h = HORA_INICIO; h < HORA_FIM; h++){
+    horarios.push(`${String(h).padStart(2,'0')}:00`);
+    horarios.push(`${String(h).padStart(2,'0')}:30`);
+  }
+  return horarios;
+}
+
+function horaParaMin(hora){
+  const [h,m] = hora.split(':').map(Number);
+  return h*60 + m;
+}
+
+function minParaHora(min){
+  const h = Math.floor(min/60);
+  const m = min % 60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+}
+
+// Retorna a lista de horários (slots de 30min) que um agendamento ocupa,
+// com base na duração do serviço.
+function slotsOcupadosPorAgendamento(agendamento){
+  const servico = db.servicos.find(s=>s.id===agendamento.servicoId);
+  const duracao = servico ? servico.duracao : 30;
+  const qtdSlots = Math.max(1, Math.ceil(duracao/30));
+  const inicioMin = horaParaMin(agendamento.hora);
+
+  const slots = [];
+  for(let i=0; i<qtdSlots; i++){
+    slots.push(minParaHora(inicioMin + i*30));
+  }
+  return slots;
+}
+
+// Retorna o conjunto de horários ocupados em uma data, considerando a duração de cada serviço
+function horariosOcupados(data, ignorarId=null){
+  const ocupados = new Set();
+  db.agendamentos
+    .filter(a => a.data === data && a.status !== 'cancelado' && a.id !== ignorarId)
+    .forEach(a => {
+      slotsOcupadosPorAgendamento(a).forEach(h => ocupados.add(h));
+    });
+  return ocupados;
+}
+
+function renderHorariosSelect(){
+  const sel = document.getElementById('agHora');
+  const valorAtual = sel.value;
+  const data = document.getElementById('agData').value;
+  const servicoId = document.getElementById('agServico').value;
+  const servico = db.servicos.find(s=>s.id===servicoId);
+  const duracao = servico ? servico.duracao : 30;
+  const qtdSlots = Math.max(1, Math.ceil(duracao/30));
+
+  const ocupados = horariosOcupados(data);
+  const todosHorarios = gerarHorarios();
+
+  sel.innerHTML = '<option value="">Selecione...</option>' +
+    todosHorarios.map((h, idx) => {
+      // Verifica se já está ocupado
+      let bloqueado = ocupados.has(h);
+
+      // Verifica se, começando aqui, o serviço ultrapassaria o horário de
+      // fechamento ou colidiria com outro agendamento já existente
+      if(!bloqueado){
+        for(let i=0; i<qtdSlots; i++){
+          const slot = todosHorarios[idx+i];
+          if(!slot || ocupados.has(slot)){
+            bloqueado = true;
+            break;
+          }
+        }
+      }
+
+      return `<option value="${h}" ${bloqueado ? 'data-ocupado="1"' : ''}>${h}${bloqueado ? ' — indisponível' : ''}</option>`;
+    }).join('');
+
+  if(valorAtual) sel.value = valorAtual;
+}
+renderHorariosSelect();
+
+document.getElementById('agData').addEventListener('change', renderHorariosSelect);
+document.getElementById('agServico').addEventListener('change', renderHorariosSelect);
+
+function renderAgenda(){
+  const box = document.getElementById('listaAgendamentos');
+  const filtroData = document.getElementById('filtroData').value;
+  const filtroStatus = document.getElementById('filtroStatus').value;
+  const filtroBarbeiro = document.getElementById('filtroBarbeiro').value;
+
+  let lista = db.agendamentos.slice();
+
+  if(filtroData) lista = lista.filter(a=> a.data === filtroData);
+  if(filtroStatus) lista = lista.filter(a=> a.status === filtroStatus);
+  if(filtroBarbeiro) lista = lista.filter(a=> a.barbeiroId === filtroBarbeiro);
+
+  lista.sort((a,b)=>{
+    if(a.data !== b.data) return a.data.localeCompare(b.data);
+    return a.hora.localeCompare(b.hora);
+  });
+
+  if(lista.length === 0){
+    box.innerHTML = '<div class="empty">Nenhum agendamento encontrado.</div>';
+    return;
+  }
+
+  box.innerHTML = lista.map(a=>{
+    const cliente = db.clientes.find(c=>c.id===a.clienteId);
+    const servico = db.servicos.find(s=>s.id===a.servicoId);
+    const barbeiro = db.profissionais.find(p=>p.id===a.barbeiroId);
+    const dataFmt = formatDateBr(a.data);
+
+    const duracao = servico ? servico.duracao : 30;
+    const horaFim = minParaHora(horaParaMin(a.hora) + duracao);
+
+    return `
+      <div class="ticket">
+        <div class="time">${a.hora}<small>${dataFmt} · até ${horaFim}</small></div>
+        <div class="info">
+          <div class="name">${escapeHtml(cliente ? cliente.nome : '(cliente removido)')}</div>
+          <div class="meta">
+            ${escapeHtml(servico ? servico.nome : '—')}
+            ${servico ? ' · R$ ' + servico.preco.toFixed(2) : ''}
+            ${barbeiro ? ' · ' + escapeHtml(barbeiro.nome) : ''}
+            ${a.obs ? ' · ' + escapeHtml(a.obs) : ''}
+          </div>
+          <div style="margin-top:6px; display:flex; gap:8px; align-items:center;">
+            <span class="badge ${a.status}">${statusLabel(a.status)}</span>
+            ${a.status === 'concluido' && a.formaPagamento ? `<span class="badge concluido">${formaPagamentoLabel(a.formaPagamento)}</span>` : ''}
+          </div>
+        </div>
+        <div class="actions">
+          ${a.status === 'pendente' ? `
+            <button class="ghost" onclick="atualizarStatus('${a.id}','concluido')">Concluir</button>
+            <button class="ghost danger" onclick="atualizarStatus('${a.id}','cancelado')">Cancelar</button>
+          ` : `
+            <button class="ghost" onclick="atualizarStatus('${a.id}','pendente')">Reabrir</button>
+          `}
+          <button class="ghost danger" onclick="excluirAgendamento('${a.id}')">✕</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function statusLabel(s){
+  return { pendente:'Pendente', concluido:'Concluído', cancelado:'Cancelado' }[s] || s;
+}
+
+function formaPagamentoLabel(f){
+  return { dinheiro:'💵 Dinheiro', pix:'📱 Pix', cartao:'💳 Cartão' }[f] || f;
+}
+
+function formatDateBr(iso){
+  const [y,m,d] = iso.split('-');
+  return `${d}/${m}`;
+}
+
+document.getElementById('btnAddAgendamento').addEventListener('click', ()=>{
+  const clienteId = document.getElementById('agCliente').value;
+  const servicoId = document.getElementById('agServico').value;
+  const barbeiroId = document.getElementById('agBarbeiro').value;
+  const data = document.getElementById('agData').value;
+  const hora = document.getElementById('agHora').value;
+  const obs = document.getElementById('agObs').value.trim();
+
+  if(!clienteId || !servicoId || !data || !hora){
+    toast('Preencha cliente, serviço, data e hora.');
+    return;
+  }
+
+  const servico = db.servicos.find(s=>s.id===servicoId);
+  const duracao = servico ? servico.duracao : 30;
+  const qtdSlots = Math.max(1, Math.ceil(duracao/30));
+  const todosHorarios = gerarHorarios();
+  const idxInicio = todosHorarios.indexOf(hora);
+
+  // Verifica se o serviço cabe dentro do horário de funcionamento
+  if(idxInicio === -1 || idxInicio + qtdSlots > todosHorarios.length){
+    toast('Esse serviço não cabe até o horário de fechamento. Escolha um horário mais cedo.');
+    return;
+  }
+
+  const slotsNecessarios = [];
+  for(let i=0; i<qtdSlots; i++){
+    slotsNecessarios.push(todosHorarios[idxInicio+i]);
+  }
+
+  const ocupados = horariosOcupados(data);
+  const conflito = slotsNecessarios.some(h => ocupados.has(h));
+  if(conflito){
+    toast('Esse horário já está ocupado. Escolha outro.');
+    return;
+  }
+
+  db.agendamentos.push({
+    id: uid(), clienteId, servicoId, barbeiroId: barbeiroId || null,
+    data, hora, obs, status: 'pendente',
+    formaPagamento: null, pagoEm: null
+  });
+  saveData();
+
+  document.getElementById('agObs').value = '';
+  renderAgenda();
+  renderHorariosSelect();
+  toast('Agendamento criado!');
+});
+
+function atualizarStatus(id, status){
+  const a = db.agendamentos.find(x=>x.id===id);
+  if(!a) return;
+
+  // Concluir abre o modal de pagamento em vez de mudar o status direto
+  if(status === 'concluido'){
+    abrirModalPagamento(id);
+    return;
+  }
+
+  // Ao reabrir um agendamento cancelado, verifica se os horários ainda estão livres
+  if(status === 'pendente' && a.status === 'cancelado'){
+    const ocupados = horariosOcupados(a.data, a.id);
+    const conflito = slotsOcupadosPorAgendamento(a).some(h => ocupados.has(h));
+    if(conflito){
+      toast('Não é possível reabrir: o horário já foi ocupado por outro agendamento.');
+      return;
+    }
+  }
+
+  a.status = status;
+  if(status !== 'concluido'){
+    a.formaPagamento = null;
+    a.pagoEm = null;
+  }
+  saveData();
+  renderAgenda();
+  renderHorariosSelect();
+  toast(status === 'cancelado' ? 'Agendamento cancelado.' : 'Agendamento reaberto.');
+}
+
+/* ---- Modal de pagamento ---- */
+let agendamentoEmFinalizacao = null;
+
+function abrirModalPagamento(id){
+  const a = db.agendamentos.find(x=>x.id===id);
+  if(!a) return;
+
+  const cliente = db.clientes.find(c=>c.id===a.clienteId);
+  const servico = db.servicos.find(s=>s.id===a.servicoId);
+
+  agendamentoEmFinalizacao = id;
+  document.getElementById('modalInfo').textContent =
+    `${cliente ? cliente.nome : '(cliente removido)'} · ${servico ? servico.nome : ''}` +
+    (servico ? ` · R$ ${servico.preco.toFixed(2)}` : '');
+
+  document.getElementById('modalPagamento').classList.add('show');
+}
+
+function fecharModalPagamento(){
+  agendamentoEmFinalizacao = null;
+  document.getElementById('modalPagamento').classList.remove('show');
+}
+
+document.querySelectorAll('.pay-opt').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    if(!agendamentoEmFinalizacao) return;
+    const a = db.agendamentos.find(x=>x.id===agendamentoEmFinalizacao);
+    if(!a) return;
+
+    a.status = 'concluido';
+    a.formaPagamento = btn.dataset.forma;
+    a.pagoEm = new Date().toISOString();
+    saveData();
+
+    fecharModalPagamento();
+    renderAgenda();
+    renderHorariosSelect();
+    toast('Atendimento concluído e pagamento registrado!');
+  });
+});
+
+document.getElementById('btnCancelarPagamento').addEventListener('click', fecharModalPagamento);
+document.getElementById('modalPagamento').addEventListener('click', (e)=>{
+  if(e.target.id === 'modalPagamento') fecharModalPagamento();
+});
+
+function excluirAgendamento(id){
+  if(!confirm('Excluir este agendamento?')) return;
+  db.agendamentos = db.agendamentos.filter(x=>x.id!==id);
+  saveData();
+  renderAgenda();
+  renderHorariosSelect();
+  toast('Agendamento excluído.');
+}
+
+document.getElementById('filtroData').addEventListener('change', renderAgenda);
+document.getElementById('filtroStatus').addEventListener('change', renderAgenda);
+document.getElementById('filtroBarbeiro').addEventListener('change', renderAgenda);
+document.getElementById('btnHoje').addEventListener('click', ()=>{
+  document.getElementById('filtroData').value = todayStr();
+  renderAgenda();
+});
+document.getElementById('btnLimparFiltro').addEventListener('click', ()=>{
+  document.getElementById('filtroData').value = '';
+  document.getElementById('filtroStatus').value = '';
+  renderAgenda();
+});
+
+/* ===========================================================
+   FINANCEIRO
+=========================================================== */
+function precoDoAgendamento(a){
+  const s = db.servicos.find(sv=>sv.id===a.servicoId);
+  return s ? s.preco : 0;
+}
+
+function renderFinanceiro(){
+  const de = document.getElementById('finDe').value;
+  const ate = document.getElementById('finAte').value;
+  const barbeiroId = document.getElementById('finBarbeiro').value;
+
+  let concluidos = db.agendamentos.filter(a=>a.status==='concluido');
+
+  if(de) concluidos = concluidos.filter(a=> a.data >= de);
+  if(ate) concluidos = concluidos.filter(a=> a.data <= ate);
+  if(barbeiroId) concluidos = concluidos.filter(a=> a.barbeiroId === barbeiroId);
+
+  const total = concluidos.reduce((sum,a)=> sum + precoDoAgendamento(a), 0);
+  const qtd = concluidos.length;
+  const ticketMedio = qtd > 0 ? total/qtd : 0;
+
+  // Por forma de pagamento
+  const porForma = { dinheiro:0, pix:0, cartao:0, '—':0 };
+  concluidos.forEach(a=>{
+    const forma = a.formaPagamento || '—';
+    porForma[forma] = (porForma[forma]||0) + precoDoAgendamento(a);
+  });
+
+  document.getElementById('finStatsBox').innerHTML = `
+    <div class="stat"><div class="num">R$ ${total.toFixed(2)}</div><div class="lbl">Total recebido</div></div>
+    <div class="stat"><div class="num">${qtd}</div><div class="lbl">Atendimentos</div></div>
+    <div class="stat"><div class="num">R$ ${ticketMedio.toFixed(2)}</div><div class="lbl">Ticket médio</div></div>
+    <div class="stat"><div class="num">R$ ${(porForma.pix||0).toFixed(2)}</div><div class="lbl">Recebido via Pix</div></div>
+  `;
+
+  // Tabela por forma de pagamento
+  const formaBox = document.getElementById('finFormaPagamento');
+  if(qtd === 0){
+    formaBox.innerHTML = '<div class="empty">Nenhum atendimento concluído nesse período.</div>';
+  } else {
+    formaBox.innerHTML = `
+      <table>
+        <thead><tr><th>Forma de pagamento</th><th>Valor</th><th>Qtd. atendimentos</th></tr></thead>
+        <tbody>
+          ${['dinheiro','pix','cartao','—'].map(f=>{
+            const valor = porForma[f] || 0;
+            const qtdF = concluidos.filter(a=> (a.formaPagamento||'—') === f).length;
+            if(qtdF === 0) return '';
+            return `<tr><td>${f === '—' ? 'Não informado' : formaPagamentoLabel(f)}</td><td>R$ ${valor.toFixed(2)}</td><td>${qtdF}</td></tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  // Por profissional
+  const porProfissional = {};
+  concluidos.forEach(a=>{
+    const key = a.barbeiroId || '—';
+    if(!porProfissional[key]) porProfissional[key] = { valor:0, qtd:0 };
+    porProfissional[key].valor += precoDoAgendamento(a);
+    porProfissional[key].qtd += 1;
+  });
+
+  const profBox = document.getElementById('finPorProfissional');
+  const entradasProf = Object.entries(porProfissional);
+  if(entradasProf.length === 0){
+    profBox.innerHTML = '<div class="empty">Nenhum atendimento concluído nesse período.</div>';
+  } else {
+    profBox.innerHTML = `
+      <table>
+        <thead><tr><th>Profissional</th><th>Faturamento</th><th>Atendimentos</th></tr></thead>
+        <tbody>
+          ${entradasProf
+            .sort((a,b)=> b[1].valor - a[1].valor)
+            .map(([id, dados])=>{
+              const p = db.profissionais.find(x=>x.id===id);
+              return `<tr><td>${escapeHtml(p ? p.nome : 'Não informado')}</td><td>R$ ${dados.valor.toFixed(2)}</td><td>${dados.qtd}</td></tr>`;
+            }).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  // Lançamentos individuais
+  const lancBox = document.getElementById('finLancamentos');
+  const ordenados = concluidos.slice().sort((a,b)=>{
+    if(a.data !== b.data) return b.data.localeCompare(a.data);
+    return b.hora.localeCompare(a.hora);
+  });
+
+  if(ordenados.length === 0){
+    lancBox.innerHTML = '<div class="empty">Nenhum lançamento nesse período.</div>';
+  } else {
+    lancBox.innerHTML = `
+      <table>
+        <thead><tr><th>Data</th><th>Cliente</th><th>Serviço</th><th>Profissional</th><th>Pagamento</th><th>Valor</th></tr></thead>
+        <tbody>
+          ${ordenados.map(a=>{
+            const cliente = db.clientes.find(c=>c.id===a.clienteId);
+            const servico = db.servicos.find(s=>s.id===a.servicoId);
+            const barbeiro = db.profissionais.find(p=>p.id===a.barbeiroId);
+            return `<tr>
+              <td>${formatDateBr(a.data)}</td>
+              <td>${escapeHtml(cliente ? cliente.nome : '—')}</td>
+              <td>${escapeHtml(servico ? servico.nome : '—')}</td>
+              <td>${escapeHtml(barbeiro ? barbeiro.nome : '—')}</td>
+              <td>${a.formaPagamento ? formaPagamentoLabel(a.formaPagamento) : '—'}</td>
+              <td>R$ ${precoDoAgendamento(a).toFixed(2)}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+}
+
+document.getElementById('btnFinCalc').addEventListener('click', renderFinanceiro);
+document.getElementById('finBarbeiro').addEventListener('change', renderFinanceiro);
+
+/* ===========================================================
+   RELATÓRIOS
+=========================================================== */
+function renderRelatorios(){
+  const total = db.agendamentos.length;
+  const pendentes = db.agendamentos.filter(a=>a.status==='pendente').length;
+  const concluidos = db.agendamentos.filter(a=>a.status==='concluido').length;
+  const faturamentoTotal = db.agendamentos
+    .filter(a=>a.status==='concluido')
+    .reduce((sum,a)=>{
+      const s = db.servicos.find(sv=>sv.id===a.servicoId);
+      return sum + (s ? s.preco : 0);
+    }, 0);
+
+  document.getElementById('statsBox').innerHTML = `
+    <div class="stat"><div class="num">${db.clientes.length}</div><div class="lbl">Clientes</div></div>
+    <div class="stat"><div class="num">${total}</div><div class="lbl">Agendamentos</div></div>
+    <div class="stat"><div class="num">${pendentes}</div><div class="lbl">Pendentes</div></div>
+    <div class="stat"><div class="num">R$ ${faturamentoTotal.toFixed(2)}</div><div class="lbl">Faturamento (concluídos)</div></div>
+  `;
+
+  renderFrequentes();
+}
+
+function renderFrequentes(){
+  const box = document.getElementById('tabelaFrequentes');
+  const contagem = {};
+  db.agendamentos.filter(a=>a.status==='concluido').forEach(a=>{
+    contagem[a.clienteId] = (contagem[a.clienteId]||0) + 1;
+  });
+
+  const lista = Object.entries(contagem)
+    .map(([clienteId, qtd])=>({
+      cliente: db.clientes.find(c=>c.id===clienteId),
+      qtd
+    }))
+    .filter(x=>x.cliente)
+    .sort((a,b)=> b.qtd - a.qtd)
+    .slice(0, 10);
+
+  if(lista.length === 0){
+    box.innerHTML = '<div class="empty">Ainda não há atendimentos concluídos.</div>';
+    return;
+  }
+
+  box.innerHTML = `
+    <table>
+      <thead><tr><th>Cliente</th><th>Atendimentos concluídos</th></tr></thead>
+      <tbody>
+        ${lista.map(x=>`<tr><td>${escapeHtml(x.cliente.nome)}</td><td>${x.qtd}</td></tr>`).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+document.getElementById('btnRelCalc').addEventListener('click', ()=>{
+  const de = document.getElementById('relDe').value;
+  const ate = document.getElementById('relAte').value;
+  const box = document.getElementById('relResultado');
+
+  if(!de || !ate){
+    box.className = 'empty';
+    box.textContent = 'Informe as duas datas do período.';
+    return;
+  }
+
+  const concluidos = db.agendamentos.filter(a=>
+    a.status === 'concluido' && a.data >= de && a.data <= ate
+  );
+
+  const totalAtendimentos = concluidos.length;
+  const faturamento = concluidos.reduce((sum,a)=>{
+    const s = db.servicos.find(sv=>sv.id===a.servicoId);
+    return sum + (s ? s.preco : 0);
+  }, 0);
+
+  box.className = '';
+  box.innerHTML = `
+    <table>
+      <tbody>
+        <tr><th>Período</th><td>${formatDateBr(de)} a ${formatDateBr(ate)}</td></tr>
+        <tr><th>Atendimentos concluídos</th><td>${totalAtendimentos}</td></tr>
+        <tr><th>Faturamento total</th><td>R$ ${faturamento.toFixed(2)}</td></tr>
+      </tbody>
+    </table>
+  `;
+});
+
+/* ===========================================================
+   BACKUP / IMPORT / RESET
+=========================================================== */
+document.getElementById('btnExportar').addEventListener('click', ()=>{
+  const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `barbearia-backup-${todayStr()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('Backup exportado!');
+});
+
+document.getElementById('btnImportarTrigger').addEventListener('click', ()=>{
+  document.getElementById('inputImportar').click();
+});
+
+document.getElementById('inputImportar').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (ev)=>{
+    try{
+      const imported = JSON.parse(ev.target.result);
+      if(!imported.clientes || !imported.servicos || !imported.agendamentos){
+        throw new Error('Formato inválido');
+      }
+      if(!imported.profissionais) imported.profissionais = [];
+      if(!confirm('Isso vai substituir todos os dados atuais pelos do arquivo. Continuar?')) return;
+
+      db = imported;
+      saveData();
+      renderAll();
+      toast('Backup importado com sucesso!');
+    }catch(err){
+      toast('Arquivo inválido. Verifique o backup.');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+document.getElementById('btnLimparTudo').addEventListener('click', ()=>{
+  if(!confirm('Isso vai apagar TODOS os dados (clientes, serviços e agendamentos). Tem certeza?')) return;
+  if(!confirm('Confirme novamente: apagar tudo e começar do zero?')) return;
+
+  db = { clientes: [], servicos: [], agendamentos: [], profissionais: [] };
+  saveData();
+  renderAll();
+  toast('Todos os dados foram apagados.');
+});
+
+/* ===========================================================
+   UTILS
+=========================================================== */
+function escapeHtml(str){
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+/* ===========================================================
+   INIT
+=========================================================== */
+function renderAll(){
+  renderClientesSelect();
+  renderServicosSelect();
+  renderProfissionaisSelects();
+  renderClientesTabela();
+  renderServicosTabela();
+  renderProfissionaisTabela();
+  renderAgenda();
+  renderHorariosSelect();
+  if(document.getElementById('view-relatorios').classList.contains('active')){
+    renderRelatorios();
+  }
+  if(document.getElementById('view-financeiro').classList.contains('active')){
+    renderFinanceiro();
+  }
+}
+
+renderAll();
+</script>
+</body>
+</html>
