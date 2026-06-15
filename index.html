@@ -894,7 +894,8 @@ function renderProfissionaisSelects(){
       .map(p => `<option value="${p.id}">${escapeHtml(p.nome)}</option>`)
       .join('');
 
-  document.getElementById('agBarbeiro').innerHTML = opcoes;
+  const agBarbeiroEl = document.getElementById('agBarbeiro');
+  if (agBarbeiroEl) agBarbeiroEl.innerHTML = opcoes;
 
   const opcoesComTodos = '<option value="">Todos</option>' +
     db.profissionais
@@ -904,14 +905,23 @@ function renderProfissionaisSelects(){
       .join('');
 
   const filtroAgenda = document.getElementById('filtroBarbeiro');
-  const valAgenda = filtroAgenda.value;
-  filtroAgenda.innerHTML = '<option value="">Todos os profissionais</option>' + db.profissionais.slice().sort((a,b)=> a.nome.localeCompare(b.nome)).map(p => `<option value="${p.id}">${escapeHtml(p.nome)}</option>`).join('');
-  filtroAgenda.value = valAgenda;
+  if (filtroAgenda) {
+    const valAgenda = filtroAgenda.value;
+    filtroAgenda.innerHTML = '<option value="">Todos os profissionais</option>' +
+      db.profissionais
+        .slice()
+        .sort((a,b)=> a.nome.localeCompare(b.nome))
+        .map(p => `<option value="${p.id}">${escapeHtml(p.nome)}</option>`)
+        .join('');
+    filtroAgenda.value = valAgenda;
+  }
 
   const filtroFin = document.getElementById('finBarbeiro');
-  const valFin = filtroFin.value;
-  filtroFin.innerHTML = opcoesComTodos;
-  filtroFin.value = valFin;
+  if (filtroFin) {
+    const valFin = filtroFin.value;
+    filtroFin.innerHTML = opcoesComTodos;
+    filtroFin.value = valFin;
+  }
 }
 
 function renderProfissionaisTabela(){
@@ -1101,10 +1111,12 @@ function horariosOcupados(data, ignorarId=null){
 
 function renderHorariosSelect(){
   const sel = document.getElementById('agHora');
+  if (!sel) return; // Evita erro caso o elemento não seja encontrado
+  
   const valorAtual = sel.value;
   const data = document.getElementById('agData').value;
   const servicoId = document.getElementById('agServico').value;
-  const servico = db.servicos.find(s=>s.id==servicoId);
+  const servico = db.servicos.find(s=>s.id===servicoId);
   const duracao = servico ? servico.duracao : 30;
   const qtdSlots = Math.max(1, Math.ceil(duracao/30));
 
@@ -1114,12 +1126,17 @@ function renderHorariosSelect(){
   sel.innerHTML = '<option value="">Selecione...</option>' +
     todosHorarios.map((h, idx) => {
       let bloqueado = ocupados.has(h);
+
       if(!bloqueado){
         for(let i=0; i<qtdSlots; i++){
           const slot = todosHorarios[idx+i];
-          if(!slot || ocupados.has(slot)){ bloqueado = true; break; }
+          if(!slot || ocupados.has(slot)){
+            bloqueado = true;
+            break;
+          }
         }
       }
+
       return `<option value="${h}" ${bloqueado ? 'data-ocupado="1"' : ''}>${h}${bloqueado ? ' — indisponível' : ''}</option>`;
     }).join('');
 
