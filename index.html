@@ -6,6 +6,7 @@
 <title>Barbearia — Painel de Controle</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Archivo:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
     --bg: #1c1816;
@@ -256,7 +257,7 @@
   .badge.concluido{ color: var(--green); }
   .badge.cancelado{ color: var(--red); }
 
-  /* ---------- Ticket (signature element) ---------- */
+  /* ---------- Ticket ---------- */
   .tickets{
     display:flex;
     flex-direction: column;
@@ -471,7 +472,6 @@
     <button class="tab-btn" data-view="relatorios">Relatórios</button>
   </nav>
 
-  <!-- ===================== AGENDA ===================== -->
   <section class="view active" id="view-agenda">
     <div class="panel">
       <h2>Novo Agendamento</h2>
@@ -527,7 +527,6 @@
     </div>
   </section>
 
-  <!-- ===================== CLIENTES ===================== -->
   <section class="view" id="view-clientes">
     <div class="panel">
       <h2>Cadastrar Cliente</h2>
@@ -557,7 +556,6 @@
     </div>
   </section>
 
-  <!-- ===================== PROFISSIONAIS ===================== -->
   <section class="view" id="view-profissionais">
     <div class="panel">
       <h2>Cadastrar Profissional</h2>
@@ -584,7 +582,6 @@
     </div>
   </section>
 
-  <!-- ===================== SERVIÇOS ===================== -->
   <section class="view" id="view-servicos">
     <div class="panel">
       <h2>Cadastrar Serviço</h2>
@@ -611,7 +608,6 @@
     </div>
   </section>
 
-  <!-- ===================== FINANCEIRO ===================== -->
   <section class="view" id="view-financeiro">
     <div class="stats" id="finStatsBox"></div>
 
@@ -654,7 +650,6 @@
     </div>
   </section>
 
-  <!-- ===================== RELATÓRIOS ===================== -->
   <section class="view" id="view-relatorios">
     <div class="stats" id="statsBox"></div>
 
@@ -680,25 +675,11 @@
       <h2>Clientes Mais Frequentes</h2>
       <div id="tabelaFrequentes"></div>
     </div>
-
-    <div class="panel">
-      <h2>Backup dos Dados</h2>
-      <p style="color:var(--muted); font-size:13px; margin-bottom:14px;">
-        Exporte um arquivo com todos os dados (clientes, serviços e agendamentos) para guardar como backup ou transferir para outro computador.
-      </p>
-      <div style="display:flex; gap:10px; flex-wrap:wrap;">
-        <button class="ghost" id="btnExportar">Exportar backup (.json)</button>
-        <button class="ghost" id="btnImportarTrigger">Importar backup (.json)</button>
-        <input type="file" id="inputImportar" accept=".json" style="display:none">
-        <button class="ghost danger" id="btnLimparTudo">Apagar todos os dados</button>
-      </div>
-    </div>
   </section>
 
-  <footer class="note">Dados salvos localmente no seu navegador — funciona sem internet.</footer>
+  <footer class="note" id="syncStatus">Conectando ao banco de dados Supabase...</footer>
 </div>
 
-<!-- Modal de pagamento -->
 <div class="modal-overlay" id="modalPagamento">
   <div class="modal">
     <h2>Finalizar Atendimento</h2>
@@ -719,47 +700,43 @@
 
 <script>
 /* ===========================================================
-   STORAGE
+   CONFIGURAÇÃO DO BANCO DE DADOS (SUPABASE)
+   Dados aplicados com sucesso baseados nos seus prints!
 =========================================================== */
-const STORAGE_KEY = 'barbearia_dados_v1';
+const SUPABASE_URL = 'https://ttsjymcnkmzwuaivhztf.supabase.co'; 
+const SUPABASE_KEY = 'sb_publishable_b_QPOtwMW4VbVhMO2RinQg_BqUVmwDu'; 
 
-function loadData(){
-  try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if(raw){
-      const data = JSON.parse(raw);
-      if(!data.profissionais) data.profissionais = [];
-      return data;
-    }
-  }catch(e){ console.error('Erro ao carregar dados', e); }
-  return { clientes: [], servicos: [], agendamentos: [], profissionais: [] };
-}
+// Inicializa a conexão com a nuvem
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-function saveData(){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
-}
+// Variáveis locais para cache (evita lentidão no carregamento)
+let db = { clientes: [], servicos: [], agendamentos: [], profissionais: [] };
 
-let db = loadData();
+// Função para buscar dados da nuvem para a tela
+async function loadData() {
+  try {
+    document.getElementById('syncStatus').textContent = "Sincronizando com a Nuvem...";
+    
+    const { data: cl } = await _supabase.from('clientes').select('*');
+    const { data: sv } = await _supabase.from('servicos').select('*');
+    const { data: pr } = await _supabase.from('profissionais').select('*');
+    const { data: ag } = await _supabase.from('agendamentos').select('*');
 
-// Seed de serviços e profissional padrão na primeira execução
-if(db.servicos.length === 0 && db.clientes.length === 0 && db.agendamentos.length === 0 && db.profissionais.length === 0){
-  db.servicos = [
-    { id: uid(), nome: 'Corte masculino', preco: 35, duracao: 30 },
-    { id: uid(), nome: 'Barba', preco: 25, duracao: 20 },
-    { id: uid(), nome: 'Corte + Barba', preco: 55, duracao: 50 },
-  ];
-  db.profissionais = [
-    { id: uid(), nome: 'Profissional 1', telefone: '', especialidade: '' },
-  ];
-  saveData();
-}
+    db.clientes = cl || [];
+    db.servicos = sv || [];
+    db.profissionais = pr || [];
+    db.agendamentos = ag || [];
 
-function uid(){
-  return Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+    document.getElementById('syncStatus').textContent = "Nuvem ativa e conectada!";
+    renderAll();
+  } catch (e) {
+    console.error(e);
+    document.getElementById('syncStatus').textContent = "Erro na sincronização. Verifique as chaves.";
+  }
 }
 
 /* ===========================================================
-   TOAST
+   TOAST & RELÓGIO
 =========================================================== */
 let toastTimer;
 function toast(msg){
@@ -770,16 +747,11 @@ function toast(msg){
   toastTimer = setTimeout(()=> t.classList.remove('show'), 2200);
 }
 
-/* ===========================================================
-   CLOCK
-=========================================================== */
 function tickClock(){
   const now = new Date();
   const dateOpts = { weekday:'long', day:'2-digit', month:'long', year:'numeric' };
-  document.getElementById('clockDate').textContent =
-    now.toLocaleDateString('pt-BR', dateOpts);
-  document.getElementById('clockTime').textContent =
-    now.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  document.getElementById('clockDate').textContent = now.toLocaleDateString('pt-BR', dateOpts);
+  document.getElementById('clockTime').textContent = now.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
 }
 tickClock();
 setInterval(tickClock, 1000);
@@ -825,10 +797,7 @@ function renderClientesTabela(){
 
   let lista = db.clientes.slice().sort((a,b)=> a.nome.localeCompare(b.nome));
   if(busca){
-    lista = lista.filter(c =>
-      c.nome.toLowerCase().includes(busca) ||
-      (c.telefone||'').toLowerCase().includes(busca)
-    );
+    lista = lista.filter(c => c.nome.toLowerCase().includes(busca) || (c.telefone||'').toLowerCase().includes(busca));
   }
 
   if(lista.length === 0){
@@ -861,64 +830,56 @@ function renderClientesTabela(){
   `;
 }
 
-document.getElementById('btnAddCliente').addEventListener('click', ()=>{
+document.getElementById('btnAddCliente').addEventListener('click', async ()=>{
   const nome = document.getElementById('clNome').value.trim();
   const telefone = document.getElementById('clTelefone').value.trim();
   const email = document.getElementById('clEmail').value.trim();
 
-  if(!nome){
-    toast('Informe o nome do cliente.');
-    return;
-  }
+  if(!nome){ toast('Informe o nome do cliente.'); return; }
 
-  db.clientes.push({ id: uid(), nome, telefone, email, criadoEm: new Date().toISOString() });
-  saveData();
+  const novoCliente = { nome, telefone: telefone || null, email: email || null };
+  const { error } = await _supabase.from('clientes').insert([novoCliente]);
+  
+  if(error) { toast('Erro ao salvar cliente na nuvem.'); console.error(error); return; }
 
   document.getElementById('clNome').value = '';
   document.getElementById('clTelefone').value = '';
   document.getElementById('clEmail').value = '';
 
-  renderClientesTabela();
-  renderClientesSelect();
+  await loadData();
   toast('Cliente cadastrado com sucesso!');
 });
 
 document.getElementById('buscaCliente').addEventListener('input', renderClientesTabela);
 
-function editarCliente(id){
-  const c = db.clientes.find(x=>x.id===id);
+async function editarCliente(id){
+  const c = db.clientes.find(x=>x.id==id);
   if(!c) return;
 
-  const novoNome = prompt('Nome:', c.nome);
-  if(novoNome === null) return;
-  const novoTel = prompt('Telefone:', c.telefone || '');
-  if(novoTel === null) return;
-  const novoEmail = prompt('E-mail:', c.email || '');
-  if(novoEmail === null) return;
+  const novoNome = prompt('Nome:', c.nome); if(novoNome === null) return;
+  const novoTel = prompt('Telefone:', c.telefone || ''); if(novoTel === null) return;
+  const novoEmail = prompt('E-mail:', c.email || ''); if(novoEmail === null) return;
 
-  c.nome = novoNome.trim() || c.nome;
-  c.telefone = novoTel.trim();
-  c.email = novoEmail.trim();
+  const { error } = await _supabase.from('clientes').update({ 
+    nome: novoNome.trim() || c.nome, 
+    telefone: novoTel.trim() || null, 
+    email: novoEmail.trim() || null 
+  }).eq('id', id);
 
-  saveData();
-  renderClientesTabela();
-  renderClientesSelect();
-  renderAgenda();
+  if(error) { toast('Erro ao atualizar.'); return; }
+  await loadData();
   toast('Cliente atualizado.');
 }
 
-function excluirCliente(id){
-  const c = db.clientes.find(x=>x.id===id);
+async function excluirCliente(id){
+  const c = db.clientes.find(x=>x.id==id);
   if(!c) return;
   if(!confirm(`Excluir o cliente "${c.nome}"? Os agendamentos dele também serão removidos.`)) return;
 
-  db.clientes = db.clientes.filter(x=>x.id!==id);
-  db.agendamentos = db.agendamentos.filter(a=>a.clienteId!==id);
-  saveData();
-
-  renderClientesTabela();
-  renderClientesSelect();
-  renderAgenda();
+  await _supabase.from('agendamentos').delete().eq('clienteId', id);
+  await _supabase.from('clientes').delete().eq('id', id);
+  
+  await loadData();
   toast('Cliente excluído.');
 }
 
@@ -944,12 +905,7 @@ function renderProfissionaisSelects(){
 
   const filtroAgenda = document.getElementById('filtroBarbeiro');
   const valAgenda = filtroAgenda.value;
-  filtroAgenda.innerHTML = '<option value="">Todos os profissionais</option>' +
-    db.profissionais
-      .slice()
-      .sort((a,b)=> a.nome.localeCompare(b.nome))
-      .map(p => `<option value="${p.id}">${escapeHtml(p.nome)}</option>`)
-      .join('');
+  filtroAgenda.innerHTML = '<option value="">Todos os profissionais</option>' + db.profissionais.slice().sort((a,b)=> a.nome.localeCompare(b.nome)).map(p => `<option value="${p.id}">${escapeHtml(p.nome)}</option>`).join('');
   filtroAgenda.value = valAgenda;
 
   const filtroFin = document.getElementById('finBarbeiro');
@@ -964,9 +920,7 @@ function renderProfissionaisTabela(){
     box.innerHTML = '<div class="empty">Nenhum profissional cadastrado ainda.</div>';
     return;
   }
-
   const lista = db.profissionais.slice().sort((a,b)=> a.nome.localeCompare(b.nome));
-
   box.innerHTML = `
     <table>
       <thead><tr><th>Nome</th><th>Telefone</th><th>Especialidade</th><th></th></tr></thead>
@@ -987,62 +941,44 @@ function renderProfissionaisTabela(){
   `;
 }
 
-document.getElementById('btnAddProfissional').addEventListener('click', ()=>{
+document.getElementById('btnAddProfissional').addEventListener('click', async ()=>{
   const nome = document.getElementById('prNome').value.trim();
   const telefone = document.getElementById('prTelefone').value.trim();
   const especialidade = document.getElementById('prEspecialidade').value.trim();
 
-  if(!nome){
-    toast('Informe o nome do profissional.');
-    return;
-  }
+  if(!nome){ toast('Informe o nome do profissional.'); return; }
 
-  db.profissionais.push({ id: uid(), nome, telefone, especialidade });
-  saveData();
-
+  await _supabase.from('profissionais').insert([{ nome, telefone: telefone||null, especialidade: especialidade||null }]);
+  
   document.getElementById('prNome').value = '';
   document.getElementById('prTelefone').value = '';
   document.getElementById('prEspecialidade').value = '';
 
-  renderProfissionaisTabela();
-  renderProfissionaisSelects();
+  await loadData();
   toast('Profissional cadastrado!');
 });
 
-function editarProfissional(id){
-  const p = db.profissionais.find(x=>x.id===id);
+async function editarProfissional(id){
+  const p = db.profissionais.find(x=>x.id==id);
   if(!p) return;
 
-  const novoNome = prompt('Nome:', p.nome);
-  if(novoNome === null) return;
-  const novoTel = prompt('Telefone:', p.telefone || '');
-  if(novoTel === null) return;
-  const novaEsp = prompt('Especialidade:', p.especialidade || '');
-  if(novaEsp === null) return;
+  const novoNome = prompt('Nome:', p.nome); if(novoNome === null) return;
+  const novoTel = prompt('Telefone:', p.telefone || ''); if(novoTel === null) return;
+  const novaEsp = prompt('Especialidade:', p.especialidade || ''); if(novaEsp === null) return;
 
-  p.nome = novoNome.trim() || p.nome;
-  p.telefone = novoTel.trim();
-  p.especialidade = novaEsp.trim();
-
-  saveData();
-  renderProfissionaisTabela();
-  renderProfissionaisSelects();
-  renderAgenda();
-  toast('Profissional atualizado.');
+  await _supabase.from('profissionais').update({ nome: novoNome.trim()||p.nome, telefone: novoTel.trim()||null, especialidade: novaEsp.trim()||null }).eq('id', id);
+  await loadData();
+  toast('Profissional updated.');
 }
 
-function excluirProfissional(id){
-  const p = db.profissionais.find(x=>x.id===id);
+async function excluirProfissional(id){
+  const p = db.profissionais.find(x=>x.id==id);
   if(!p) return;
   if(!confirm(`Excluir o profissional "${p.nome}"? Os agendamentos dele continuarão existindo, mas sem profissional vinculado.`)) return;
 
-  db.profissionais = db.profissionais.filter(x=>x.id!==id);
-  db.agendamentos.forEach(a=>{ if(a.barbeiroId===id) a.barbeiroId = null; });
-  saveData();
-
-  renderProfissionaisTabela();
-  renderProfissionaisSelects();
-  renderAgenda();
+  await _supabase.from('agendamentos').update({ barbeiroId: null }).eq('barbeiroId', id);
+  await _supabase.from('profissionais').delete().eq('id', id);
+  await loadData();
   toast('Profissional excluído.');
 }
 
@@ -1062,7 +998,7 @@ function renderServicosTabela(){
         ${db.servicos.map(s=>`
           <tr>
             <td>${escapeHtml(s.nome)}</td>
-            <td>R$ ${s.preco.toFixed(2)}</td>
+            <td>R$ ${parseFloat(s.preco).toFixed(2)}</td>
             <td>${s.duracao} min</td>
             <td class="row-actions">
               <button class="ghost" onclick="editarServico('${s.id}')">Editar</button>
@@ -1075,76 +1011,57 @@ function renderServicosTabela(){
   `;
 }
 
-document.getElementById('btnAddServico').addEventListener('click', ()=>{
+document.getElementById('btnAddServico').addEventListener('click', async ()=>{
   const nome = document.getElementById('svNome').value.trim();
   const preco = parseFloat(document.getElementById('svPreco').value);
   const duracao = parseInt(document.getElementById('svDuracao').value, 10);
 
-  if(!nome || isNaN(preco) || isNaN(duracao)){
-    toast('Preencha nome, preço e duração corretamente.');
-    return;
-  }
+  if(!nome || isNaN(preco) || isNaN(duracao)){ toast('Preencha nome, preço e duração corretamente.'); return; }
 
-  db.servicos.push({ id: uid(), nome, preco, duracao });
-  saveData();
-
+  await _supabase.from('servicos').insert([{ nome, preco, duracao }]);
+  
   document.getElementById('svNome').value = '';
   document.getElementById('svPreco').value = '';
   document.getElementById('svDuracao').value = '';
 
-  renderServicosTabela();
-  renderServicosSelect();
+  await loadData();
   toast('Serviço cadastrado!');
 });
 
-function editarServico(id){
-  const s = db.servicos.find(x=>x.id===id);
+async function editarServico(id){
+  const s = db.servicos.find(x=>x.id==id);
   if(!s) return;
 
-  const novoNome = prompt('Nome do serviço:', s.nome);
-  if(novoNome === null) return;
-  const novoPreco = prompt('Preço (R$):', s.preco);
-  if(novoPreco === null) return;
-  const novaDuracao = prompt('Duração (min):', s.duracao);
-  if(novaDuracao === null) return;
+  const novoNome = prompt('Nome do serviço:', s.nome); if(novoNome === null) return;
+  const novoPreco = prompt('Preço (R$):', s.preco); if(novoPreco === null) return;
+  const novaDuracao = prompt('Duração (min):', s.duracao); if(novaDuracao === null) return;
 
-  s.nome = novoNome.trim() || s.nome;
-  const p = parseFloat(novoPreco); if(!isNaN(p)) s.preco = p;
-  const d = parseInt(novaDuracao, 10); if(!isNaN(d)) s.duracao = d;
+  const dados = { nome: novoNome.trim() || s.nome };
+  const p = parseFloat(novoPreco); if(!isNaN(p)) dados.preco = p;
+  const d = parseInt(novaDuracao, 10); if(!isNaN(d)) dados.duracao = d;
 
-  saveData();
-  renderServicosTabela();
-  renderServicosSelect();
-  renderAgenda();
+  await _supabase.from('servicos').update(dados).eq('id', id);
+  await loadData();
   toast('Serviço atualizado.');
 }
 
-function excluirServico(id){
-  const s = db.servicos.find(x=>x.id===id);
+async function excluirServico(id){
+  const s = db.servicos.find(x=>x.id==id);
   if(!s) return;
   if(!confirm(`Excluir o serviço "${s.nome}"?`)) return;
 
-  db.servicos = db.servicos.filter(x=>x.id!==id);
-  saveData();
-  renderServicosTabela();
-  renderServicosSelect();
+  await _supabase.from('servicos').delete().eq('id', id);
+  await loadData();
   toast('Serviço excluído.');
 }
 
 /* ===========================================================
    AGENDAMENTOS
 =========================================================== */
-function todayStr(){
-  const d = new Date();
-  return d.toISOString().slice(0,10);
-}
-
+function todayStr(){ return new Date().toISOString().slice(0,10); }
 document.getElementById('agData').value = todayStr();
 
-/* ---- Horários de funcionamento (meia em meia hora) ---- */
-const HORA_INICIO = 8;   // 08:00
-const HORA_FIM = 19;     // até 18:30 (último horário antes das 19:00)
-
+const HORA_INICIO = 8; const HORA_FIM = 19;
 function gerarHorarios(){
   const horarios = [];
   for(let h = HORA_INICIO; h < HORA_FIM; h++){
@@ -1160,34 +1077,25 @@ function horaParaMin(hora){
 }
 
 function minParaHora(min){
-  const h = Math.floor(min/60);
-  const m = min % 60;
+  const h = Math.floor(min/60); const m = min % 60;
   return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
 }
 
-// Retorna a lista de horários (slots de 30min) que um agendamento ocupa,
-// com base na duração do serviço.
 function slotsOcupadosPorAgendamento(agendamento){
-  const servico = db.servicos.find(s=>s.id===agendamento.servicoId);
+  const servico = db.servicos.find(s=>s.id==agendamento.servicoId);
   const duracao = servico ? servico.duracao : 30;
   const qtdSlots = Math.max(1, Math.ceil(duracao/30));
   const inicioMin = horaParaMin(agendamento.hora);
-
   const slots = [];
-  for(let i=0; i<qtdSlots; i++){
-    slots.push(minParaHora(inicioMin + i*30));
-  }
+  for(let i=0; i<qtdSlots; i++){ slots.push(minParaHora(inicioMin + i*30)); }
   return slots;
 }
 
-// Retorna o conjunto de horários ocupados em uma data, considerando a duração de cada serviço
 function horariosOcupados(data, ignorarId=null){
   const ocupados = new Set();
   db.agendamentos
-    .filter(a => a.data === data && a.status !== 'cancelado' && a.id !== ignorarId)
-    .forEach(a => {
-      slotsOcupadosPorAgendamento(a).forEach(h => ocupados.add(h));
-    });
+    .filter(a => a.data === data && a.status !== 'cancelado' && a.id != ignorarId)
+    .forEach(a => { slotsOcupadosPorAgendamento(a).forEach(h => ocupados.add(h)); });
   return ocupados;
 }
 
@@ -1196,7 +1104,7 @@ function renderHorariosSelect(){
   const valorAtual = sel.value;
   const data = document.getElementById('agData').value;
   const servicoId = document.getElementById('agServico').value;
-  const servico = db.servicos.find(s=>s.id===servicoId);
+  const servico = db.servicos.find(s=>s.id==servicoId);
   const duracao = servico ? servico.duracao : 30;
   const qtdSlots = Math.max(1, Math.ceil(duracao/30));
 
@@ -1205,21 +1113,13 @@ function renderHorariosSelect(){
 
   sel.innerHTML = '<option value="">Selecione...</option>' +
     todosHorarios.map((h, idx) => {
-      // Verifica se já está ocupado
       let bloqueado = ocupados.has(h);
-
-      // Verifica se, começando aqui, o serviço ultrapassaria o horário de
-      // fechamento ou colidiria com outro agendamento já existente
       if(!bloqueado){
         for(let i=0; i<qtdSlots; i++){
           const slot = todosHorarios[idx+i];
-          if(!slot || ocupados.has(slot)){
-            bloqueado = true;
-            break;
-          }
+          if(!slot || ocupados.has(slot)){ bloqueado = true; break; }
         }
       }
-
       return `<option value="${h}" ${bloqueado ? 'data-ocupado="1"' : ''}>${h}${bloqueado ? ' — indisponível' : ''}</option>`;
     }).join('');
 
@@ -1240,7 +1140,7 @@ function renderAgenda(){
 
   if(filtroData) lista = lista.filter(a=> a.data === filtroData);
   if(filtroStatus) lista = lista.filter(a=> a.status === filtroStatus);
-  if(filtroBarbeiro) lista = lista.filter(a=> a.barbeiroId === filtroBarbeiro);
+  if(filtroBarbeiro) lista = lista.filter(a=> a.barbeiroId == filtroBarbeiro);
 
   lista.sort((a,b)=>{
     if(a.data !== b.data) return a.data.localeCompare(b.data);
@@ -1253,9 +1153,9 @@ function renderAgenda(){
   }
 
   box.innerHTML = lista.map(a=>{
-    const cliente = db.clientes.find(c=>c.id===a.clienteId);
-    const servico = db.servicos.find(s=>s.id===a.servicoId);
-    const barbeiro = db.profissionais.find(p=>p.id===a.barbeiroId);
+    const cliente = db.clientes.find(c=>c.id==a.clienteId);
+    const servico = db.servicos.find(s=>s.id==a.servicoId);
+    const barbeiro = db.profissionais.find(p=>p.id==a.barbeiroId);
     const dataFmt = formatDateBr(a.data);
 
     const duracao = servico ? servico.duracao : 30;
@@ -1268,7 +1168,7 @@ function renderAgenda(){
           <div class="name">${escapeHtml(cliente ? cliente.nome : '(cliente removido)')}</div>
           <div class="meta">
             ${escapeHtml(servico ? servico.nome : '—')}
-            ${servico ? ' · R$ ' + servico.preco.toFixed(2) : ''}
+            ${servico ? ' · R$ ' + parseFloat(servico.preco).toFixed(2) : ''}
             ${barbeiro ? ' · ' + escapeHtml(barbeiro.nome) : ''}
             ${a.obs ? ' · ' + escapeHtml(a.obs) : ''}
           </div>
@@ -1291,20 +1191,11 @@ function renderAgenda(){
   }).join('');
 }
 
-function statusLabel(s){
-  return { pendente:'Pendente', concluido:'Concluído', cancelado:'Cancelado' }[s] || s;
-}
+function statusLabel(s){ return { pendente:'Pendente', concluido:'Concluído', cancelado:'Cancelado' }[s] || s; }
+function formaPagamentoLabel(f){ return { dinheiro:'💵 Dinheiro', pix:'📱 Pix', cartao:'💳 Cartão' }[f] || f; }
+function formatDateBr(iso){ const [y,m,d] = iso.split('-'); return `${d}/${m}`; }
 
-function formaPagamentoLabel(f){
-  return { dinheiro:'💵 Dinheiro', pix:'📱 Pix', cartao:'💳 Cartão' }[f] || f;
-}
-
-function formatDateBr(iso){
-  const [y,m,d] = iso.split('-');
-  return `${d}/${m}`;
-}
-
-document.getElementById('btnAddAgendamento').addEventListener('click', ()=>{
+document.getElementById('btnAddAgendamento').addEventListener('click', async ()=>{
   const clienteId = document.getElementById('agCliente').value;
   const servicoId = document.getElementById('agServico').value;
   const barbeiroId = document.getElementById('agBarbeiro').value;
@@ -1312,153 +1203,88 @@ document.getElementById('btnAddAgendamento').addEventListener('click', ()=>{
   const hora = document.getElementById('agHora').value;
   const obs = document.getElementById('agObs').value.trim();
 
-  if(!clienteId || !servicoId || !data || !hora){
-    toast('Preencha cliente, serviço, data e hora.');
-    return;
-  }
+  if(!clienteId || !servicoId || !data || !hora){ toast('Preencha cliente, serviço, data e hora.'); return; }
 
-  const servico = db.servicos.find(s=>s.id===servicoId);
+  const servico = db.servicos.find(s=>s.id==servicoId);
   const duracao = servico ? servico.duracao : 30;
   const qtdSlots = Math.max(1, Math.ceil(duracao/30));
   const todosHorarios = gerarHorarios();
   const idxInicio = todosHorarios.indexOf(hora);
 
-  // Verifica se o serviço cabe dentro do horário de funcionamento
-  if(idxInicio === -1 || idxInicio + qtdSlots > todosHorarios.length){
-    toast('Esse serviço não cabe até o horário de fechamento. Escolha um horário mais cedo.');
-    return;
-  }
+  if(idxInicio === -1 || idxInicio + qtdSlots > todosHorarios.length){ toast('Esse serviço não cabe até o horário de fechamento.'); return; }
 
   const slotsNecessarios = [];
-  for(let i=0; i<qtdSlots; i++){
-    slotsNecessarios.push(todosHorarios[idxInicio+i]);
-  }
+  for(let i=0; i<qtdSlots; i++){ slotsNecessarios.push(todosHorarios[idxInicio+i]); }
 
   const ocupados = horariosOcupados(data);
   const conflito = slotsNecessarios.some(h => ocupados.has(h));
-  if(conflito){
-    toast('Esse horário já está ocupado. Escolha outro.');
-    return;
-  }
+  if(conflito){ toast('Esse horário já está ocupado.'); return; }
 
-  db.agendamentos.push({
-    id: uid(), clienteId, servicoId, barbeiroId: barbeiroId || null,
-    data, hora, obs, status: 'pendente',
-    formaPagamento: null, pagoEm: null
-  });
-  saveData();
+  await _supabase.from('agendamentos').insert([{
+    clienteId, servicoId, barbeiroId: barbeiroId ? barbeiroId : null,
+    data, hora, obs: obs || null, status: 'pendente'
+  }]);
 
   document.getElementById('agObs').value = '';
-  renderAgenda();
-  renderHorariosSelect();
+  await loadData();
   toast('Agendamento criado!');
 });
 
-function atualizarStatus(id, status){
-  const a = db.agendamentos.find(x=>x.id===id);
-  if(!a) return;
+async function atualizarStatus(id, status){
+  if(status === 'concluido'){ abrirModalPagamento(id); return; }
 
-  // Concluir abre o modal de pagamento em vez de mudar o status direto
-  if(status === 'concluido'){
-    abrirModalPagamento(id);
-    return;
-  }
-
-  // Ao reabrir um agendamento cancelado, verifica se os horários ainda estão livres
-  if(status === 'pendente' && a.status === 'cancelado'){
-    const ocupados = horariosOcupados(a.data, a.id);
-    const conflito = slotsOcupadosPorAgendamento(a).some(h => ocupados.has(h));
-    if(conflito){
-      toast('Não é possível reabrir: o horário já foi ocupado por outro agendamento.');
-      return;
-    }
-  }
-
-  a.status = status;
-  if(status !== 'concluido'){
-    a.formaPagamento = null;
-    a.pagoEm = null;
-  }
-  saveData();
-  renderAgenda();
-  renderHorariosSelect();
+  await _supabase.from('agendamentos').update({ status, formaPagamento: null, pagoEm: null }).eq('id', id);
+  await loadData();
   toast(status === 'cancelado' ? 'Agendamento cancelado.' : 'Agendamento reaberto.');
 }
 
-/* ---- Modal de pagamento ---- */
 let agendamentoEmFinalizacao = null;
-
 function abrirModalPagamento(id){
-  const a = db.agendamentos.find(x=>x.id===id);
-  if(!a) return;
-
-  const cliente = db.clientes.find(c=>c.id===a.clienteId);
-  const servico = db.servicos.find(s=>s.id===a.servicoId);
+  const a = db.agendamentos.find(x=>x.id==id); if(!a) return;
+  const cliente = db.clientes.find(c=>c.id==a.clienteId);
+  const servico = db.servicos.find(s=>s.id==a.servicoId);
 
   agendamentoEmFinalizacao = id;
-  document.getElementById('modalInfo').textContent =
-    `${cliente ? cliente.nome : '(cliente removido)'} · ${servico ? servico.nome : ''}` +
-    (servico ? ` · R$ ${servico.preco.toFixed(2)}` : '');
-
+  document.getElementById('modalInfo').textContent = `${cliente ? cliente.nome : ''} · ${servico ? servico.nome : ''}` + (servico ? ` · R$ ${parseFloat(servico.preco).toFixed(2)}` : '');
   document.getElementById('modalPagamento').classList.add('show');
 }
 
-function fecharModalPagamento(){
-  agendamentoEmFinalizacao = null;
-  document.getElementById('modalPagamento').classList.remove('show');
-}
+function fecharModalPagamento(){ document.getElementById('modalPagamento').classList.remove('show'); }
 
 document.querySelectorAll('.pay-opt').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
+  btn.addEventListener('click', async ()=>{
     if(!agendamentoEmFinalizacao) return;
-    const a = db.agendamentos.find(x=>x.id===agendamentoEmFinalizacao);
-    if(!a) return;
-
-    a.status = 'concluido';
-    a.formaPagamento = btn.dataset.forma;
-    a.pagoEm = new Date().toISOString();
-    saveData();
+    await _supabase.from('agendamentos').update({
+      status: 'concluido',
+      formaPagamento: btn.dataset.forma,
+      pagoEm: new Date().toISOString()
+    }).eq('id', agendamentoEmFinalizacao);
 
     fecharModalPagamento();
-    renderAgenda();
-    renderHorariosSelect();
-    toast('Atendimento concluído e pagamento registrado!');
+    await loadData();
+    toast('Atendimento concluído e pago!');
   });
 });
 
-document.getElementById('btnCancelarPagamento').addEventListener('click', fecharModalPagamento);
-document.getElementById('modalPagamento').addEventListener('click', (e)=>{
-  if(e.target.id === 'modalPagamento') fecharModalPagamento();
-});
-
-function excluirAgendamento(id){
+async function excluirAgendamento(id){
   if(!confirm('Excluir este agendamento?')) return;
-  db.agendamentos = db.agendamentos.filter(x=>x.id!==id);
-  saveData();
-  renderAgenda();
-  renderHorariosSelect();
+  await _supabase.from('agendamentos').delete().eq('id', id);
+  await loadData();
   toast('Agendamento excluído.');
 }
 
 document.getElementById('filtroData').addEventListener('change', renderAgenda);
 document.getElementById('filtroStatus').addEventListener('change', renderAgenda);
 document.getElementById('filtroBarbeiro').addEventListener('change', renderAgenda);
-document.getElementById('btnHoje').addEventListener('click', ()=>{
-  document.getElementById('filtroData').value = todayStr();
-  renderAgenda();
-});
-document.getElementById('btnLimparFiltro').addEventListener('click', ()=>{
-  document.getElementById('filtroData').value = '';
-  document.getElementById('filtroStatus').value = '';
-  renderAgenda();
-});
+document.getElementById('btnHoje').addEventListener('click', ()=>{ document.getElementById('filtroData').value = todayStr(); renderAgenda(); });
+document.getElementById('btnLimparFiltro').addEventListener('click', ()=>{ document.getElementById('filtroData').value = ''; document.getElementById('filtroStatus').value = ''; renderAgenda(); });
 
 /* ===========================================================
    FINANCEIRO
 =========================================================== */
 function precoDoAgendamento(a){
-  const s = db.servicos.find(sv=>sv.id===a.servicoId);
-  return s ? s.preco : 0;
+  const s = db.servicos.find(sv=>sv.id==a.servicoId);
+  return s ? parseFloat(s.preco) : 0;
 }
 
 function renderFinanceiro(){
@@ -1467,21 +1293,16 @@ function renderFinanceiro(){
   const barbeiroId = document.getElementById('finBarbeiro').value;
 
   let concluidos = db.agendamentos.filter(a=>a.status==='concluido');
-
   if(de) concluidos = concluidos.filter(a=> a.data >= de);
   if(ate) concluidos = concluidos.filter(a=> a.data <= ate);
-  if(barbeiroId) concluidos = concluidos.filter(a=> a.barbeiroId === barbeiroId);
+  if(barbeiroId) concluidos = concluidos.filter(a=> a.barbeiroId == barbeiroId);
 
   const total = concluidos.reduce((sum,a)=> sum + precoDoAgendamento(a), 0);
   const qtd = concluidos.length;
   const ticketMedio = qtd > 0 ? total/qtd : 0;
 
-  // Por forma de pagamento
   const porForma = { dinheiro:0, pix:0, cartao:0, '—':0 };
-  concluidos.forEach(a=>{
-    const forma = a.formaPagamento || '—';
-    porForma[forma] = (porForma[forma]||0) + precoDoAgendamento(a);
-  });
+  concluidos.forEach(a=>{ const forma = a.formaPagamento || '—'; porForma[forma] = (porForma[forma]||0) + precoDoAgendamento(a); });
 
   document.getElementById('finStatsBox').innerHTML = `
     <div class="stat"><div class="num">R$ ${total.toFixed(2)}</div><div class="lbl">Total recebido</div></div>
@@ -1490,88 +1311,61 @@ function renderFinanceiro(){
     <div class="stat"><div class="num">R$ ${(porForma.pix||0).toFixed(2)}</div><div class="lbl">Recebido via Pix</div></div>
   `;
 
-  // Tabela por forma de pagamento
   const formaBox = document.getElementById('finFormaPagamento');
-  if(qtd === 0){
-    formaBox.innerHTML = '<div class="empty">Nenhum atendimento concluído nesse período.</div>';
-  } else {
+  if(qtd === 0){ formaBox.innerHTML = '<div class="empty">Nenhum atendimento concluído nesse período.</div>'; } 
+  else {
     formaBox.innerHTML = `
       <table>
         <thead><tr><th>Forma de pagamento</th><th>Valor</th><th>Qtd. atendimentos</th></tr></thead>
         <tbody>
           ${['dinheiro','pix','cartao','—'].map(f=>{
-            const valor = porForma[f] || 0;
-            const qtdF = concluidos.filter(a=> (a.formaPagamento||'—') === f).length;
+            const valor = porForma[f] || 0; const qtdF = concluidos.filter(a=> (a.formaPagamento||'—') === f).length;
             if(qtdF === 0) return '';
             return `<tr><td>${f === '—' ? 'Não informado' : formaPagamentoLabel(f)}</td><td>R$ ${valor.toFixed(2)}</td><td>${qtdF}</td></tr>`;
           }).join('')}
         </tbody>
-      </table>
-    `;
+      </table>`;
   }
 
-  // Por profissional
   const porProfissional = {};
   concluidos.forEach(a=>{
-    const key = a.barbeiroId || '—';
-    if(!porProfissional[key]) porProfissional[key] = { valor:0, qtd:0 };
-    porProfissional[key].valor += precoDoAgendamento(a);
-    porProfissional[key].qtd += 1;
+    const key = a.barbeiroId || '—'; if(!porProfissional[key]) porProfissional[key] = { valor:0, qtd:0 };
+    porProfissional[key].valor += precoDoAgendamento(a); porProfissional[key].qtd += 1;
   });
 
   const profBox = document.getElementById('finPorProfissional');
   const entradasProf = Object.entries(porProfissional);
-  if(entradasProf.length === 0){
-    profBox.innerHTML = '<div class="empty">Nenhum atendimento concluído nesse período.</div>';
-  } else {
+  if(entradasProf.length === 0){ profBox.innerHTML = '<div class="empty">Nenhum atendimento concluído nesse período.</div>'; } 
+  else {
     profBox.innerHTML = `
       <table>
         <thead><tr><th>Profissional</th><th>Faturamento</th><th>Atendimentos</th></tr></thead>
         <tbody>
-          ${entradasProf
-            .sort((a,b)=> b[1].valor - a[1].valor)
-            .map(([id, dados])=>{
-              const p = db.profissionais.find(x=>x.id===id);
+          ${entradasProf.sort((a,b)=> b[1].valor - a[1].valor).map(([id, dados])=>{
+              const p = db.profissionais.find(x=>x.id==id);
               return `<tr><td>${escapeHtml(p ? p.nome : 'Não informado')}</td><td>R$ ${dados.valor.toFixed(2)}</td><td>${dados.qtd}</td></tr>`;
             }).join('')}
         </tbody>
-      </table>
-    `;
+      </table>`;
   }
 
-  // Lançamentos individuais
   const lancBox = document.getElementById('finLancamentos');
-  const ordenados = concluidos.slice().sort((a,b)=>{
-    if(a.data !== b.data) return b.data.localeCompare(a.data);
-    return b.hora.localeCompare(a.hora);
-  });
-
-  if(ordenados.length === 0){
-    lancBox.innerHTML = '<div class="empty">Nenhum lançamento nesse período.</div>';
-  } else {
+  if(concluidos.length === 0){ lancBox.innerHTML = '<div class="empty">Nenhum lançamento nesse período.</div>'; } 
+  else {
     lancBox.innerHTML = `
       <table>
         <thead><tr><th>Data</th><th>Cliente</th><th>Serviço</th><th>Profissional</th><th>Pagamento</th><th>Valor</th></tr></thead>
         <tbody>
-          ${ordenados.map(a=>{
-            const cliente = db.clientes.find(c=>c.id===a.clienteId);
-            const servico = db.servicos.find(s=>s.id===a.servicoId);
-            const barbeiro = db.profissionais.find(p=>p.id===a.barbeiroId);
-            return `<tr>
-              <td>${formatDateBr(a.data)}</td>
-              <td>${escapeHtml(cliente ? cliente.nome : '—')}</td>
-              <td>${escapeHtml(servico ? servico.nome : '—')}</td>
-              <td>${escapeHtml(barbeiro ? barbeiro.nome : '—')}</td>
-              <td>${a.formaPagamento ? formaPagamentoLabel(a.formaPagamento) : '—'}</td>
-              <td>R$ ${precoDoAgendamento(a).toFixed(2)}</td>
-            </tr>`;
+          ${concluidos.map(a=>{
+            const cliente = db.clientes.find(c=>c.id==a.clienteId);
+            const servico = db.servicos.find(s=>s.id==a.servicoId);
+            const barbeiro = db.profissionais.find(p=>p.id==a.barbeiroId);
+            return `<tr><td>${formatDateBr(a.data)}</td><td>${escapeHtml(cliente ? cliente.nome : '—')}</td><td>${escapeHtml(servico ? servico.nome : '—')}</td><td>${escapeHtml(barbeiro ? barbeiro.nome : '—')}</td><td>${a.formaPagamento ? formaPagamentoLabel(a.formaPagamento) : '—'}</td><td>R$ ${precoDoAgendamento(a).toFixed(2)}</td></tr>`;
           }).join('')}
         </tbody>
-      </table>
-    `;
+      </table>`;
   }
 }
-
 document.getElementById('btnFinCalc').addEventListener('click', renderFinanceiro);
 document.getElementById('finBarbeiro').addEventListener('change', renderFinanceiro);
 
@@ -1582,12 +1376,7 @@ function renderRelatorios(){
   const total = db.agendamentos.length;
   const pendentes = db.agendamentos.filter(a=>a.status==='pendente').length;
   const concluidos = db.agendamentos.filter(a=>a.status==='concluido').length;
-  const faturamentoTotal = db.agendamentos
-    .filter(a=>a.status==='concluido')
-    .reduce((sum,a)=>{
-      const s = db.servicos.find(sv=>sv.id===a.servicoId);
-      return sum + (s ? s.preco : 0);
-    }, 0);
+  const faturamentoTotal = db.agendamentos.filter(a=>a.status==='concluido').reduce((sum,a)=> sum + precoDoAgendamento(a), 0);
 
   document.getElementById('statsBox').innerHTML = `
     <div class="stat"><div class="num">${db.clientes.length}</div><div class="lbl">Clientes</div></div>
@@ -1595,162 +1384,59 @@ function renderRelatorios(){
     <div class="stat"><div class="num">${pendentes}</div><div class="lbl">Pendentes</div></div>
     <div class="stat"><div class="num">R$ ${faturamentoTotal.toFixed(2)}</div><div class="lbl">Faturamento (concluídos)</div></div>
   `;
-
   renderFrequentes();
 }
 
 function renderFrequentes(){
   const box = document.getElementById('tabelaFrequentes');
   const contagem = {};
-  db.agendamentos.filter(a=>a.status==='concluido').forEach(a=>{
-    contagem[a.clienteId] = (contagem[a.clienteId]||0) + 1;
-  });
+  db.agendamentos.filter(a=>a.status==='concluido').forEach(a=>{ contagem[a.clienteId] = (contagem[a.clienteId]||0) + 1; });
 
-  const lista = Object.entries(contagem)
-    .map(([clienteId, qtd])=>({
-      cliente: db.clientes.find(c=>c.id===clienteId),
-      qtd
-    }))
-    .filter(x=>x.cliente)
-    .sort((a,b)=> b.qtd - a.qtd)
-    .slice(0, 10);
+  const lista = Object.entries(contagem).map(([clienteId, qtd])=>({ cliente: db.clientes.find(c=>c.id==clienteId), qtd })).filter(x=>x.cliente).sort((a,b)=> b.qtd - a.qtd).slice(0, 10);
 
-  if(lista.length === 0){
-    box.innerHTML = '<div class="empty">Ainda não há atendimentos concluídos.</div>';
-    return;
-  }
-
+  if(lista.length === 0){ box.innerHTML = '<div class="empty">Ainda não há atendimentos concluídos.</div>'; return; }
   box.innerHTML = `
     <table>
       <thead><tr><th>Cliente</th><th>Atendimentos concluídos</th></tr></thead>
       <tbody>
         ${lista.map(x=>`<tr><td>${escapeHtml(x.cliente.nome)}</td><td>${x.qtd}</td></tr>`).join('')}
       </tbody>
-    </table>
-  `;
+    </table>`;
 }
 
-document.getElementById('btnRelCalc').addEventListener('click', ()=>{
+document.getElementById('btnRelCalc').addEventListener('click', () => {
   const de = document.getElementById('relDe').value;
   const ate = document.getElementById('relAte').value;
   const box = document.getElementById('relResultado');
 
-  if(!de || !ate){
-    box.className = 'empty';
-    box.textContent = 'Informe as duas datas do período.';
-    return;
-  }
-
-  const concluidos = db.agendamentos.filter(a=>
-    a.status === 'concluido' && a.data >= de && a.data <= ate
-  );
-
-  const totalAtendimentos = concluidos.length;
-  const faturamento = concluidos.reduce((sum,a)=>{
-    const s = db.servicos.find(sv=>sv.id===a.servicoId);
-    return sum + (s ? s.preco : 0);
-  }, 0);
+  if (!de || !ate) { box.className = 'empty'; box.textContent = 'Informe as duas datas do período.'; return; }
+  const concluidos = db.agendamentos.filter(a => a.status === 'concluido' && a.data >= de && a.data <= ate);
+  const faturamento = concluidos.reduce((sum, a) => sum + precoDoAgendamento(a), 0);
 
   box.className = '';
   box.innerHTML = `
     <table>
       <tbody>
         <tr><th>Período</th><td>${formatDateBr(de)} a ${formatDateBr(ate)}</td></tr>
-        <tr><th>Atendimentos concluídos</th><td>${totalAtendimentos}</td></tr>
+        <tr><th>Atendimentos concluídos</th><td>${concluidos.length}</td></tr>
         <tr><th>Faturamento total</th><td>R$ ${faturamento.toFixed(2)}</td></tr>
       </tbody>
-    </table>
-  `;
+    </table>`;
 });
 
 /* ===========================================================
-   BACKUP / IMPORT / RESET
+   UTILS & INIT
 =========================================================== */
-document.getElementById('btnExportar').addEventListener('click', ()=>{
-  const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `barbearia-backup-${todayStr()}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  toast('Backup exportado!');
-});
+function escapeHtml(str){ return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-document.getElementById('btnImportarTrigger').addEventListener('click', ()=>{
-  document.getElementById('inputImportar').click();
-});
-
-document.getElementById('inputImportar').addEventListener('change', (e)=>{
-  const file = e.target.files[0];
-  if(!file) return;
-
-  const reader = new FileReader();
-  reader.onload = (ev)=>{
-    try{
-      const imported = JSON.parse(ev.target.result);
-      if(!imported.clientes || !imported.servicos || !imported.agendamentos){
-        throw new Error('Formato inválido');
-      }
-      if(!imported.profissionais) imported.profissionais = [];
-      if(!confirm('Isso vai substituir todos os dados atuais pelos do arquivo. Continuar?')) return;
-
-      db = imported;
-      saveData();
-      renderAll();
-      toast('Backup importado com sucesso!');
-    }catch(err){
-      toast('Arquivo inválido. Verifique o backup.');
-    }
-  };
-  reader.readAsText(file);
-  e.target.value = '';
-});
-
-document.getElementById('btnLimparTudo').addEventListener('click', ()=>{
-  if(!confirm('Isso vai apagar TODOS os dados (clientes, serviços e agendamentos). Tem certeza?')) return;
-  if(!confirm('Confirme novamente: apagar tudo e começar do zero?')) return;
-
-  db = { clientes: [], servicos: [], agendamentos: [], profissionais: [] };
-  saveData();
-  renderAll();
-  toast('Todos os dados foram apagados.');
-});
-
-/* ===========================================================
-   UTILS
-=========================================================== */
-function escapeHtml(str){
-  return String(str)
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;');
-}
-
-/* ===========================================================
-   INIT
-=========================================================== */
 function renderAll(){
-  renderClientesSelect();
-  renderServicosSelect();
-  renderProfissionaisSelects();
-  renderClientesTabela();
-  renderServicosTabela();
-  renderProfissionaisTabela();
-  renderAgenda();
-  renderHorariosSelect();
-  if(document.getElementById('view-relatorios').classList.contains('active')){
-    renderRelatorios();
-  }
-  if(document.getElementById('view-financeiro').classList.contains('active')){
-    renderFinanceiro();
-  }
+  renderClientesSelect(); renderServicosSelect(); renderProfissionaisSelects();
+  renderClientesTabela(); renderServicosTabela(); renderProfissionaisTabela();
+  renderAgenda(); renderHorariosSelect();
 }
 
-renderAll();
+// Inicia o carregamento automático vindo da nuvem
+loadData();
 </script>
 </body>
 </html>
